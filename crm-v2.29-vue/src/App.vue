@@ -22,6 +22,10 @@ import {
   statusClass,
 } from "./data";
 import CommerceFlow from "./components/CommerceFlow.vue";
+import OrderListView from "./components/OrderListView.vue";
+import OrderDetailView from "./components/OrderDetailView.vue";
+import OrderEditorView from "./components/OrderEditorView.vue";
+import OrderActionModal from "./components/OrderActionModal.vue";
 
 const isChannelPlatform = new URLSearchParams(window.location.search).get("platform") === "channel";
 const commerceRoutes = ["shop", "product-detail", "cart", "checkout"];
@@ -56,6 +60,17 @@ const isOrderList = computed(() => route.value === "customer-orders" || route.va
 const isDetail = computed(() => route.value === "customer-detail" || route.value === "admin-detail");
 const isConfirmRequirements = computed(() => route.value === "confirm-requirements");
 const isModifyOrder = computed(() => route.value === "modify-order");
+const isAuditOrder = computed(() => route.value === "audit-order");
+const isItemNumber = computed(() => route.value === "item-number");
+const isDiscountPrice = computed(() => route.value === "discount-price");
+const isOrderEditor = computed(() => isModifyOrder.value || isConfirmRequirements.value || isAuditOrder.value || isItemNumber.value || isDiscountPrice.value);
+const activeEditorMode = computed(() => {
+  if (isAuditOrder.value) return "audit";
+  if (isItemNumber.value) return "itemno";
+  if (isDiscountPrice.value) return "discount";
+  if (isConfirmRequirements.value) return "confirm";
+  return "modify";
+});
 const requirementExtraFees = computed(() => Number(requirementFees.certificate || 0) + Number(requirementFees.other || 0) + Number(requirementFees.handling || 0));
 const requirementPayable = computed(() => Number(currentOrder.value?.productTotal || 0) + Number(requirementFees.freight || 0) + requirementExtraFees.value);
 
@@ -110,6 +125,9 @@ const breadcrumb = computed(() => {
     "admin-detail": ["Order Center", "Standard Orders", "Order Details"],
     "confirm-requirements": ["Order Center", "Customer Orders", "Confirm Requirements"],
     "modify-order": ["Order Center", "Customer Orders", "Modify Order"],
+    "audit-order": ["订单中心", "标品订单", "订单审核"],
+    "item-number": ["订单中心", "标品订单", "录入品号"],
+    "discount-price": [isAdmin.value ? "订单中心" : "Order Center", isAdmin.value ? "标品订单" : "Customer Orders", isAdmin.value ? "设置折扣价格" : "Set Discount Price"],
   };
   return map[route.value] || [];
 });
@@ -272,8 +290,8 @@ function navigateBreadcrumb(index) {
 function isNavActive(target) {
   if (target === "shop") return route.value === "shop" || route.value === "product-detail";
   if (target === "cart") return route.value === "cart" || route.value === "checkout";
-  if (target === "admin-orders") return ["admin-orders", "admin-detail"].includes(route.value) || (["confirm-requirements", "modify-order"].includes(route.value) && isAdmin.value);
-  if (target === "customer-orders") return ["customer-orders", "customer-detail"].includes(route.value) || (["confirm-requirements", "modify-order"].includes(route.value) && !isAdmin.value);
+  if (target === "admin-orders") return ["admin-orders", "admin-detail"].includes(route.value) || (["confirm-requirements", "modify-order", "audit-order", "item-number", "discount-price"].includes(route.value) && isAdmin.value);
+  if (target === "customer-orders") return ["customer-orders", "customer-detail"].includes(route.value) || (["confirm-requirements", "modify-order", "discount-price"].includes(route.value) && !isAdmin.value);
   return route.value === target;
 }
 
@@ -288,12 +306,28 @@ function performAction(action, orderId) {
   if (action === "view") return navigate(isAdmin.value ? "admin-detail" : "customer-detail", orderId);
   if (action === "confirm") { editorProductTab.value = "custom"; return navigate("confirm-requirements", orderId); }
   if (action === "modify") { editorProductTab.value = "standard"; return navigate("modify-order", orderId); }
+  if (action === "audit") { editorProductTab.value = "standard"; return navigate("audit-order", orderId); }
+  if (action === "itemno") { editorProductTab.value = "custom"; return navigate("item-number", orderId); }
+  if (action === "discount") { editorProductTab.value = "standard"; return navigate("discount-price", orderId); }
   if (action === "address") return openModal(isAdmin.value ? "address-admin" : "address-customer", orderId);
+  if (action === "fees") return openModal(isAdmin.value ? "fees-admin" : "fees-customer", orderId);
+  if (action === "contract") { showToast(isAdmin.value ? "合同已下载。" : "Contract downloaded."); return; }
+  if (action === "owner" || action === "note" || action === "voucher" || action === "shipment" || action === "delete") return openModal(action, orderId);
   if (action === "pay") return openModal("pay", orderId);
-  if (action === "laser") return openModal("laser-customer", orderId);
-  if (action === "cancel") return openModal("cancel-customer", orderId);
+  if (action === "laser") return openModal(isAdmin.value ? "laser-admin" : "laser-customer", orderId);
+  if (action === "cancel") return openModal(isAdmin.value ? "cancel-admin" : "cancel-customer", orderId);
   if (action === "another") return openModal("another-customer", orderId);
   openModal(action, orderId);
+}
+
+function handleEditorBack() {
+  navigate(isAdmin.value ? "admin-orders" : "customer-orders");
+}
+
+function handleEditorSubmit(mode) {
+  const message = isAdmin.value ? "操作已提交。" : `${mode === "confirm" ? "Requirements" : "Order changes"} submitted.`;
+  showToast(message);
+  navigate(isAdmin.value ? "admin-orders" : "customer-orders");
 }
 
 function openActionPopover(event, order) {
@@ -330,6 +364,15 @@ function openModal(kind, orderId = currentOrderId.value) {
     cancelReason: "",
     shipmentResult: "Confirm Shipment",
     shipmentReason: "",
+    shipmentNote: "",
+    owner: "",
+    freight: 0,
+    certificate: 0,
+    other: 0,
+    handling: 0,
+    payment: order.currency || "USD",
+    rate: 1,
+    voucherName: "",
   };
 }
 
@@ -352,16 +395,34 @@ function submitModal() {
     order.paid = order.amount;
     order.status = STATUS.PAID;
     showToast("Payment submitted.");
+  } else if (modal.kind === "owner") {
+    order.owner = modal.data.owner;
+    showToast("业务员已变更。");
+  } else if (modal.kind === "note") {
+    order.note = modal.data.note;
+    showToast("订单备注已更新。");
+  } else if (["fees-admin", "fees-customer"].includes(modal.kind)) {
+    order.hdl = modal.data.hdl;
+    order.po = modal.data.po;
+    showToast(isAdmin.value ? "费用已设置。" : "Fees updated.");
   } else if (isAddressModal.value) {
     order.shipping = modal.data.shipping;
     order.logistics = modal.data.shipping === "Customer Pickup" ? "" : modal.data.logistics;
+    order.dispatch = modal.data.dispatch;
     showToast("Address updated.");
-  } else if (modal.kind === "laser-customer") {
+  } else if (["laser-customer", "laser-admin"].includes(modal.kind)) {
     order.laser = modal.data.laserTile || modal.data.laserXelent ? "Yes" : "No";
     showToast("Laser engraving settings updated.");
-  } else if (modal.kind === "cancel-customer") {
+  } else if (["cancel-customer", "cancel-admin"].includes(modal.kind)) {
     order.status = STATUS.CLOSED;
     showToast("Order cancelled.");
+  } else if (modal.kind === "voucher") {
+    order.paid = order.amount;
+    order.status = STATUS.PAID;
+    showToast("付款凭证已提交。");
+  } else if (modal.kind === "delete") {
+    orders.value = orders.value.filter((item) => item.id !== order.id);
+    showToast("订单数据已删除。");
   } else if (modal.kind === "shipment") {
     order.status = modal.data.shipmentResult === "Return to Pending Payment" ? STATUS.PAYMENT : STATUS.SHIPMENT;
     showToast(modal.data.shipmentResult === "Return to Pending Payment" ? "订单已退回待付款。" : "已确认发货。");
@@ -500,92 +561,16 @@ function showToast(message) {
 
         <CommerceFlow v-if="commerceRoutes.includes(route)" :route="route" :products="products" :cart="cart" @navigate="navigate" @update:cart="cart = $event" @order-created="handleCommerceOrder" @toast="showToast" />
 
-        <section v-else-if="isOrderList" class="page">
-          <div class="page-tabs"><button class="page-tab" type="button">Domestic</button><button class="page-tab active" type="button">International</button></div>
-          <div class="page-body">
-            <div class="quick-tabs"><button v-for="tab in quickTabs" :key="tab.key" class="quick-tab" :class="{ active: currentQuick === tab.key }" type="button" @click="currentQuick = tab.key">{{ tab.label }}<span v-if="tab.showCount">({{ tab.count }})</span></button></div>
-            <div class="filters"><label class="field"><input v-model="filters.orderNo" placeholder="Please enter order number" /></label><label class="field"><select v-model="filters.customer"><option value="" disabled hidden data-placeholder>Please select a client</option><option v-for="name in [...new Set(orders.map((order) => order.customer))]" :key="name">{{ name }}</option></select></label><label class="field"><select v-model="filters.status"><option value="" disabled hidden data-placeholder>Please select an order status</option><option v-for="status in Object.values(STATUS)" :key="status" :value="status">{{ status }}</option></select></label><label class="field"><input v-model="filters.project" placeholder="Please enter a project name" /></label><label class="field"><input v-model="filters.erp" placeholder="Please enter an ERP No." /></label><label class="field"><input placeholder="Order Date From ~ Order Date To" /></label><label class="field"><select><option value="" disabled hidden selected data-placeholder>Please choose whether to enjoy the offer</option><option>Yes</option><option>No</option></select></label><label class="field"><input placeholder="Please enter the laser engraving file name/file number" /></label><label class="field"><select><option value="" disabled hidden selected data-placeholder>Please select whether Fangyue laser engraving</option><option>Yes</option><option>No</option></select></label><div class="filter-actions"><button class="btn" type="button" @click="resetFilters">Reset</button><button class="btn primary" type="button" @click="applyFilters"><Search :size="15" />Search</button></div></div>
-            <div class="table-wrap"><table class="customer-order-table" :class="{ 'channel-order-table': isChannelPlatform }"><thead><tr v-if="isChannelPlatform"><th>Order Number</th><th>Customer Name</th><th>Project Name</th><th>Business Type</th><th>HDL Ref No.</th><th>P.O. No.</th><th>Laser Engraving Required</th><th>Order Date</th><th>Product Subtotal</th><th>Amount Paid</th><th>Amount to be paid</th><th>Payment Currency</th><th>Total Amount Payable</th><th>Contract Number</th><th>Whether Tax Included</th><th>Order Status</th><th class="sticky-operation">Operation</th></tr><tr v-else><th>Order Number</th><th>Customer Name</th><th>Project Name</th><th>Laser Engraving Required</th><th>Order Date</th><th>Product Subtotal</th><th>Order Discount</th><th>Amount Paid</th><th>Amount to be paid</th><th>Payment Currency</th><th>Project Number</th><th>Total Amount Payable</th><th>Contract Number</th><th>Whether Tax Included</th><th>Order Status</th><th>Review Result</th><th>Review Notes</th><th class="sticky-operation">Operation</th></tr></thead><tbody><tr v-for="order in filteredOrders" :key="order.id"><template v-if="isChannelPlatform"><td><button class="link" type="button" @click="performAction('view', order.id)">{{ order.no }}</button></td><td>{{ order.customer }}</td><td>{{ order.project }}</td><td>{{ order.business }}</td><td>{{ order.hdl || '-' }}</td><td>{{ order.po || '-' }}</td><td>{{ order.laser }}</td><td>{{ order.date }}</td><td class="money">{{ money(order.productTotal, order.currency) }}</td><td class="money">{{ money(order.paid, order.currency) }}</td><td class="money">{{ money(Math.max(0, order.amount - order.paid), order.currency) }}</td><td>{{ order.currency }}</td><td class="money">{{ money(order.amount, order.currency) }}</td><td>{{ order.contract || '-' }}</td><td>{{ order.tax }}</td><td><span class="pill" :class="statusClass(order.status)">{{ order.status }}</span></td></template><template v-else><td><button class="link" type="button" @click="performAction('view', order.id)">{{ order.no }}</button></td><td>{{ order.customer }}</td><td>{{ order.project }}</td><td>{{ order.laser }}</td><td>{{ order.date }}</td><td class="money">{{ money(order.productTotal, order.currency) }}</td><td>{{ order.discount }}</td><td class="money">{{ money(order.paid, order.currency) }}</td><td class="money">{{ money(Math.max(0, order.amount - order.paid), order.currency) }}</td><td>{{ order.currency }}</td><td>{{ order.projectNo }}</td><td class="money">{{ money(order.amount, order.currency) }}</td><td>{{ order.contract || '-' }}</td><td>{{ order.tax }}</td><td><span class="pill" :class="statusClass(order.status)">{{ order.status }}</span></td><td>{{ order.status === STATUS.FAILED ? 'Review Failed' : '-' }}</td><td>{{ order.reviewNote || '-' }}</td></template><td class="sticky-operation"><div class="row-actions"><button v-for="(action, index) in getOrderActions(order.status, orderMode).slice(0, 2)" :key="action.id" class="btn small" :class="index === 0 ? 'purple' : 'orange'" type="button" @click="performAction(action.id, order.id)">{{ action.label }}</button><button v-if="getOrderActions(order.status, orderMode).length > 2" class="btn small icon more-action" type="button" aria-haspopup="menu" :aria-expanded="actionPopover.show && actionPopover.orderId === order.id" @click.stop="openActionPopover($event, order)"><MoreHorizontal :size="16" /></button></div></td></tr></tbody></table></div>
-            <div class="pager"><span>Total {{ filteredOrders.length }}</span><button class="btn icon" disabled><ChevronLeft :size="15" /></button><button class="page-no">1</button><button class="btn icon" disabled><ChevronRight :size="15" /></button><span>10/page</span></div>
-          </div>
-        </section>
+        <OrderListView v-else-if="isOrderList" :orders="orders" :admin="isAdmin" @action="performAction" />
 
-        <form v-else-if="isModifyOrder" class="modify-order-page" @submit.prevent="submitModifyOrder">
-          <section class="page editor-order-summary-card">
-            <div class="editor-order-summary">
-              <div class="editor-order-topline"><span class="editor-order-label">Order Number</span><strong>{{ currentOrder.no }}</strong><span class="pill" :class="statusClass(currentOrder.status)">{{ currentOrder.status }}</span></div>
-              <div class="editor-order-meta"><div><span>Customer Name</span><strong>{{ currentOrder.customer }}</strong></div><div><span>Order Date</span><strong>{{ currentOrder.date }}</strong></div></div>
-            </div>
-          </section>
-
-          <section class="page modify-products-card">
-            <div class="page-head modify-products-head">
-              <div class="editor-product-tabs">
-                <button type="button" :class="{ active: editorProductTab === 'standard' }" @click="editorProductTab = 'standard'">Standard Products</button>
-                <button type="button" :class="{ active: editorProductTab === 'custom' }" @click="editorProductTab = 'custom'">No-standard Products</button>
-              </div>
-              <button class="btn purple" type="button" @click="showToast('Product selector opened.')">+&nbsp; Add More Items</button>
-            </div>
-            <div v-if="editorProductTab === 'standard'" class="table-wrap editor-standard-table modify-product-table"><table><thead><tr><th>Product Name</th><th>Product Specification</th><th>Product Model</th><th>Product Code</th><th>Laser Engraving</th><th>Quantity</th><th>Discount</th><th>Unit Price</th><th>Amount</th><th>Delivery Status</th><th>Operation</th></tr></thead><tbody><tr><td>{{ getProduct(102).name }}</td><td>{{ getProduct(102).spec }}</td><td>{{ getProduct(102).model }}</td><td><input class="audit-cell-input product-code-input" :value="getProduct(102).code" aria-label="Product Code" /></td><td><span class="readonly-cell-value">Yes</span></td><td><input class="audit-cell-input qty-input" type="number" min="1" value="1" aria-label="Quantity" /></td><td>0.8</td><td>{{ money(getProduct(102).price, currentOrder.currency) }}</td><td class="money">{{ money(getProduct(102).price, currentOrder.currency) }}</td><td class="stock-state">Out of stock</td><td><button class="btn red small" type="button">Delete</button></td></tr></tbody></table></div>
-            <div v-else class="table-wrap editor-custom-table modify-product-table"><table><thead><tr><th>Product Name</th><th>Product Specification</th><th>Product Code</th><th>No-standard Code</th><th>Quantity</th><th>Unit Price</th><th>Laser Engraving</th><th>No-standard customization</th><th>Amount</th><th>Delivery Status</th><th>Operation</th></tr></thead><tbody><tr><td>{{ getProduct(104).name }}</td><td>{{ getProduct(104).spec }}</td><td>{{ getProduct(104).code }}</td><td><input class="audit-cell-input product-code-input" value="435567007" aria-label="No-standard Code" /></td><td><input class="audit-cell-input qty-input" type="number" min="1" value="1" aria-label="Quantity" /></td><td><span class="readonly-cell-value">{{ money(getProduct(104).price, currentOrder.currency) }}</span></td><td><span class="readonly-cell-value">Yes</span></td><td><span class="readonly-cell-value requirement-value">black and blue</span></td><td class="pending-price">***</td><td>Pending Shipment</td><td><button class="btn red small" type="button">Delete</button></td></tr></tbody></table></div>
-          </section>
-
-          <footer class="page modify-order-footer">
-            <span class="modify-total">Total: <strong>{{ money(currentOrder.productTotal, currentOrder.currency) }}</strong></span>
-            <div><button class="btn" type="button" @click="navigate(isAdmin ? 'admin-orders' : 'customer-orders')">Cancel</button><button class="btn primary" type="submit">Submit</button></div>
-          </footer>
-        </form>
-        <form v-else-if="isConfirmRequirements" class="requirements-page" @submit.prevent="submitRequirements">
-          <section class="page requirements-order-card">
-            <div class="requirements-order-topline"><span class="order-label">Order Number</span><strong>{{ currentOrder.no }}</strong><span class="pill" :class="statusClass(currentOrder.status)">{{ currentOrder.status }}</span></div>
-            <div class="requirements-order-meta"><span>Customer Name</span><strong>{{ currentOrder.customer }}</strong><span>Order Date</span><strong>{{ currentOrder.date }}</strong></div>
-          </section>
-
-          <section class="page requirements-products-card">
-            <div class="requirements-products-head">
-              <div class="editor-product-tabs">
-                <button type="button" :class="{ active: editorProductTab === 'standard' }" @click="editorProductTab = 'standard'">Standard Products</button>
-                <button type="button" :class="{ active: editorProductTab === 'custom' }" @click="editorProductTab = 'custom'">No-standard Products</button>
-              </div>
-              <button class="btn purple" type="button" @click="showToast('Product selector opened.')">+&nbsp; Add More Items</button>
-            </div>
-            <div v-if="editorProductTab === 'standard'" class="table-wrap requirements-product-table"><table><thead><tr><th>Product Name</th><th>Product Specification</th><th>Product Code</th><th>Quantity</th><th>Unit Price</th><th>Laser Engraving</th><th>Amount</th><th>Delivery Status</th><th>Operation</th></tr></thead><tbody><tr><td>{{ getProduct(102).name }}</td><td>{{ getProduct(102).spec }}</td><td>{{ getProduct(102).code }}</td><td><input class="requirements-cell-input" type="number" min="1" value="1" /></td><td>{{ money(getProduct(102).price, currentOrder.currency) }}</td><td>Yes</td><td class="money">{{ money(getProduct(102).price, currentOrder.currency) }}</td><td>Pending Shipment</td><td><button class="btn red small" type="button">Delete</button></td></tr></tbody></table></div>
-            <div v-else class="table-wrap requirements-product-table"><table><thead><tr><th>Product Name</th><th>Product Specification</th><th>Product Code</th><th>No-standard Code</th><th>Quantity</th><th>Unit Price</th><th>Laser Engraving</th><th>No-standard customization</th><th>Amount</th><th>Delivery Status</th><th>Operation</th></tr></thead><tbody><tr><td>{{ getProduct(104).name }}</td><td>{{ getProduct(104).spec }}</td><td>{{ getProduct(104).code }}</td><td><input class="requirements-cell-input code" value="435567007" /></td><td><input class="requirements-cell-input quantity" type="number" min="1" value="1" /></td><td><span class="currency-prefix">{{ currentOrder.currency === 'HKD' ? 'HK$' : '$' }}</span><input class="requirements-cell-input price" type="number" min="0" :value="getProduct(104).price" /></td><td>Yes</td><td>black and blue</td><td class="pending-price">***</td><td>Pending Shipment</td><td><button class="btn red small" type="button">Delete</button></td></tr></tbody></table></div>
-          </section>
-
-          <section class="page requirements-fees-card">
-            <h2>Set fees</h2>
-            <div class="requirements-fee-grid">
-              <label><span>HDL Ref No. <i>*</i></span><input :value="currentOrder.hdl" /></label>
-              <label><span>P.O. No.</span><input :value="currentOrder.po" /></label>
-              <label><span>Freight</span><input v-model.number="requirementFees.freight" type="number" min="0" /></label>
-              <label><span>Certificate Fee</span><input v-model.number="requirementFees.certificate" type="number" min="0" /></label>
-              <label><span>Other Fee</span><input v-model.number="requirementFees.other" type="number" min="0" /></label>
-              <label><span>Handling Fee</span><input v-model.number="requirementFees.handling" type="number" min="0" /></label>
-              <label><span>Payment Method <i>*</i></span><select v-model="requirementFees.payment"><option>USD</option><option>EURO</option><option>HKD</option></select></label>
-              <label><span>Exchange Rate <i>*</i></span><input v-model.number="requirementFees.rate" type="number" min="0.01" step="0.01" /></label>
-            </div>
-          </section>
-
-          <footer class="page requirements-footer">
-            <div class="requirements-payable"><span>Total Amount Payable:</span><strong>{{ money(requirementPayable, currentOrder.currency) }} (Order Total: {{ money(currentOrder.productTotal, currentOrder.currency) }}, Freight: {{ money(requirementFees.freight, currentOrder.currency) }}, Pay Handling Fee: {{ money(requirementExtraFees, currentOrder.currency) }})</strong></div>
-            <div class="requirements-actions"><button class="btn" type="button" @click="navigate('customer-orders')">Cancel</button><button class="btn" type="button" @click="saveRequirementFees">Save</button><button class="btn primary" type="submit">Submit</button></div>
-          </footer>
-        </form>
-        <template v-else-if="isDetail">
-          <section class="page order-banner order-detail-banner" :class="{ 'customer-detail-banner': !isAdmin }"><div><h1><span class="order-label">Order Number</span>{{ currentOrder.no }} <span class="pill" :class="statusClass(currentOrder.status)">{{ isAdmin ? statusZh[currentOrder.status] : currentOrder.status }}</span></h1><div class="order-banner-meta"><span>Customer Name&nbsp;&nbsp;{{ currentOrder.customer }}</span><span v-if="!isAdmin">Order Remarks: {{ currentOrder.note || '-' }}</span></div></div><div class="order-banner-date"><span>Order Date</span><strong>{{ currentOrder.date }}</strong></div></section>
-          <div class="detail-layout order-detail-layout" :class="isAdmin ? 'admin-detail-layout' : 'customer-detail-layout'">
-          <section class="page order-detail-main"><div class="detail-tabs"><button v-for="tab in detailTabs" :key="tab.key" class="detail-tab" :class="{ active: detailTab === tab.key }" type="button" @click="detailTab = tab.key">{{ tab.label }}</button></div><div class="detail-pane"><template v-if="detailTab === 'basic'"><section class="order-detail-section"><h2><span></span>{{ isAdmin ? '订单信息' : 'Order Information' }}</h2><div class="detail-grid"><div v-for="row in (isAdmin ? adminOrderInfoRows : customerOrderInfoRows)" :key="row[0]" class="detail-row"><span>{{ row[0] }}</span><strong :class="{ money: row[0].includes('Amount') || row[0].includes('金额') || row[0] === 'Order Total' }">{{ row[1] }}</strong></div></div></section><section class="order-detail-section"><h2><span></span>{{ isAdmin ? '收货地址' : 'Delivery Address' }}</h2><div class="detail-grid"><div v-for="row in (isAdmin ? adminAddressRows : customerAddressRows)" :key="row[0]" class="detail-row"><span>{{ row[0] }}</span><strong>{{ row[1] }}</strong></div></div></section></template><template v-else-if="detailTab === 'products'"><section class="order-detail-section"><h2><span></span>{{ isAdmin ? '产品信息' : 'Product Information' }}</h2><div class="product-detail-tabs"><button type="button" class="active">{{ isAdmin ? '标准品' : 'Standard Products' }}</button><button type="button">{{ isAdmin ? '非标定制品' : 'No-standard Products' }}</button></div><div class="table-wrap detail-product-table"><table><thead><tr><th>{{ isAdmin ? '产品名称' : 'Product Name' }}</th><th>{{ isAdmin ? '产品规格' : 'Product Specification' }}</th><th>{{ isAdmin ? '产品型号' : 'Product Model' }}</th><th>{{ isAdmin ? '产品编码' : 'Product Code' }}</th><th>{{ isAdmin ? '是否镭雕' : 'Laser Engraving' }}</th><th>{{ isAdmin ? '数量' : 'Quantity' }}</th><th>{{ isAdmin ? '折扣' : 'Discount' }}</th><th>{{ isAdmin ? '单价' : 'Unit Price' }}</th><th>{{ isAdmin ? '金额' : 'Amount' }}</th><th>{{ isAdmin ? '发货状态' : 'Delivery Status' }}</th></tr></thead><tbody><tr v-for="product in productDetailRows()" :key="product.id"><td>{{ product.name }}</td><td>{{ product.spec }}</td><td>{{ product.model }}</td><td>{{ product.code }}</td><td>{{ product.orderLaser }}</td><td>{{ product.orderQty }}</td><td>0.8</td><td>{{ money(product.price, currentOrder.currency) }}</td><td class="money">{{ money(product.price * product.orderQty, currentOrder.currency) }}</td><td :class="{ 'stock-state': product.shortage }">{{ product.shortage ? (isAdmin ? '缺货' : 'Out of stock') : '-' }}</td></tr></tbody></table></div></section></template><template v-else-if="detailTab === 'changes'"><section class="order-detail-section change-detail"><div class="change-meta"><span>{{ isAdmin ? '操作人：' : 'Operator: ' }}{{ currentOrder.owner }}</span><span>2026-07-14 14:13:37</span></div><div class="change-list"><div class="change-row"><span class="change-badge red">{{ isAdmin ? '删除' : 'Delete' }}</span><div><strong>{{ isAdmin ? '删除商品' : 'Delete Product' }} Tile Series UK Switch Socket 2.1</strong><span class="muted">{{ isAdmin ? '商品编码' : 'Commodity Code' }} 308081790, {{ isAdmin ? '数量8删除为0' : 'Quantity 8 deletion to 0' }}</span></div></div><div class="change-row"><span class="change-badge blue">{{ isAdmin ? '修改' : 'Modify' }}</span><div><strong>{{ isAdmin ? '修改数量' : 'Modify Quantity' }} Constant Voltage Driver(RGBW)</strong><span class="muted">{{ isAdmin ? '商品编码' : 'Commodity Code' }} 312020010, {{ isAdmin ? '数量1变更为3' : 'Quantity 1 changed to 3' }}</span></div></div><div class="change-row"><span class="change-badge blue">{{ isAdmin ? '修改' : 'Modify' }}</span><div><strong>{{ isAdmin ? '修改数量' : 'Modify Quantity' }} Tile Series 2 Port Ethernet Wall Outlet 2.1</strong><span class="muted">{{ isAdmin ? '商品编码' : 'Commodity Code' }} 308090328, {{ isAdmin ? '数量1变更为3' : 'Quantity 1 changed to 3' }}</span></div></div></div></section></template><template v-else-if="detailTab === 'tile'"><section class="tile-pane" aria-label="Tile information"><div class="tile-audit-list"><div class="tile-audit-item"><span class="tile-audit-dot"></span><div class="tile-meta-grid"><span>Approval Status:</span><strong>To be confirmed</strong><span>Approval Instructions:</span><strong>-</strong><span>Approval Time:</span><strong>-</strong><span>Reviewer:</span><strong>-</strong></div></div><div class="tile-audit-item"><span class="tile-audit-dot"></span><div><div class="tile-meta-grid"><span>Upload Time:</span><strong>2026/07/16</strong><span>Uploader:</span><strong>{{ currentOrder.owner }}</strong></div><h2 class="tile-document-title">Laser Engraving Requirements Document</h2><div class="tile-document-list"><div v-for="document in tileDocuments" :key="document.name" class="tile-document-row"><span class="tile-document-name">{{ document.name }}</span><div class="tile-document-actions"><button type="button" @click="openTilePreview(document)">Preview</button><button type="button" @click="downloadTileDocument(document)">Download</button></div></div></div></div></div></div></section></template></div></section>          <aside class="detail-side order-detail-side">
-            <section class="page side-panel"><h2>Order Manager</h2><div class="side-item"><span>Person in Charge</span><strong>{{ currentOrder.owner }}</strong></div><div class="side-item"><span>Department</span><strong>Sales Management Department</strong></div><div class="side-item"><span>Contact Number</span><strong>{{ currentOrder.phone }}</strong></div></section>
-            <section class="page side-panel timeline-panel"><h2>Order Record</h2><div class="timeline"><div v-for="step in orderTimeline" :key="step.stage" class="timeline-item" :class="{ complete: step.reached, active: step.current }"><span class="timeline-mark"></span><div class="timeline-content"><strong>{{ step.label }}</strong><span v-if="step.current && step.note" class="timeline-note">{{ step.note }}</span><span v-if="step.reached && step.stage <= 1" class="timeline-meta">{{ currentOrder.owner }} · {{ currentOrder.date }} 11:43:46</span></div></div></div></section>
-          </aside>
-          </div>        </template>
+        <OrderEditorView v-else-if="isOrderEditor" :order="currentOrder" :products="products" :admin="isAdmin" :mode="activeEditorMode" @back="handleEditorBack" @submit="handleEditorSubmit" @toast="showToast" />
+        <OrderDetailView v-else-if="isDetail" :order="currentOrder" :admin="isAdmin" :products="products" @toast="showToast" />
       </main>
     </div>
 
     <Teleport to="body"><div v-if="actionPopover.show" class="action-pop-layer" @click.self="closeActionPopover"><div class="action-pop floating-action-pop" :style="{ left: `${actionPopover.x}px`, top: `${actionPopover.y}px` }" role="menu"><button v-for="action in actionPopover.actions" :key="action.id" type="button" role="menuitem" @click="performPopoverAction(action.id)">{{ action.label }}</button></div></div></Teleport>
     <div class="backdrop" :class="{ show: sidebarOpen || modal.show }" @click="sidebarOpen ? sidebarOpen = false : closeModal()"></div>
-    <section v-if="modal.show" class="modal show" :class="{ 'wide-modal': ['fees-admin', 'fees-customer'].includes(modal.kind), 'address-modal': isAddressModal, 'voucher-modal': modal.kind === 'voucher', 'pay-modal': modal.kind === 'pay', 'shipment-modal': modal.kind === 'shipment' }" role="dialog" aria-modal="true"><div class="modal-head"><h2>{{ modalTitle }}</h2><button class="btn icon" type="button" aria-label="Close" @click="closeModal"><X :size="18" /></button></div><form @submit.prevent="submitModal"><div class="modal-body"><template v-if="modal.kind === 'channel-modify'"><div class="form-grid"><div class="field"><label>Order Number</label><strong>{{ modalOrder.no }}</strong></div><div class="field"><label>Customer Name</label><strong>{{ modalOrder.customer }}</strong></div><label class="field">Project Name <span class="required">*</span><input v-model="modal.data.project" required /></label><label class="field">HDL Ref No.<input v-model="modal.data.hdl" /></label><label class="field">P.O. No.<input v-model="modal.data.po" /></label><label class="field">Dispatch Requirement<select v-model="modal.data.dispatch"><option>Ready to ship</option><option>Ship available stock first</option><option>Ship together</option></select></label><label class="field wide">Order Remarks<textarea v-model="modal.data.note" placeholder="Please enter"></textarea></label></div></template><div v-else-if="modal.kind === 'pay'" class="pay-form"><p class="pay-balance">Current balance: {{ money(0, 'USD') }}</p><div class="pay-choice"><span class="pay-field-label"><i>*</i>whether to use</span><div class="radio-line"><label><input v-model="modal.data.useBalance" type="radio" value="Use" required />Use</label><label><input v-model="modal.data.useBalance" type="radio" value="Do not use" />Do not use</label></div></div><div class="pay-amount"><span>This order also needs</span><strong>{{ money(modalOrder.amount, 'USD') }} ({{ money(modalOrder.amount, modalOrder.currency) }})</strong><span class="pay-to">to pay</span></div><label class="pay-remarks"><span>Payment Remarks</span><input v-model="modal.data.paymentRemarks" placeholder="Please enter payment remarks" /></label></div><div v-else-if="modal.kind === 'shipment'" class="shipment-form"><div class="field shipment-result"><label><span class="required">*</span> 确认结果</label><div class="radio-line"><label><input v-model="modal.data.shipmentResult" type="radio" value="Confirm Shipment" required />确认发货</label><label><input v-model="modal.data.shipmentResult" type="radio" value="Return to Pending Payment" />退回待付款</label></div></div><label v-if="modal.data.shipmentResult === 'Return to Pending Payment'" class="field shipment-reason-field"><span class="shipment-field-label"><i>*</i>原因备注</span><input v-model="modal.data.shipmentReason" type="text" required placeholder="请输入原因备注" /></label></div><div v-else-if="isAddressModal" class="address-settings-form"><div class="address-select-row"><div class="address-field-heading"><span><i>*</i>Delivery Address</span><button class="address-edit-link" type="button" @click="openAddressDetailModal">Edit Address</button></div><select><option>{{ addressSummary }}</option></select></div><fieldset class="address-option-group"><legend><span>*</span>Shipping Method</legend><div class="radio-line"><label><input v-model="modal.data.shipping" type="radio" value="HDL Prepaid Freight" required />HDL Prepaid Freight</label><label><input v-model="modal.data.shipping" type="radio" value="Customer Pickup" />Customer Pickup</label><label><input v-model="modal.data.shipping" type="radio" value="Freight Collect" />Freight Collect</label></div></fieldset><fieldset v-if="modal.data.shipping !== 'Customer Pickup'" class="address-option-group"><legend><span>*</span>Logistics Company</legend><div class="radio-line"><label><input v-model="modal.data.logistics" type="radio" value="DHL" required />DHL</label><label><input v-model="modal.data.logistics" type="radio" value="Fedex" />Fedex</label><label><input v-model="modal.data.logistics" type="radio" value="UPS" />UPS</label></div></fieldset></div><div v-else-if="modal.kind === 'laser-customer'" class="laser-form"><p>Select the panel families that require laser engraving.</p><label><input v-model="modal.data.laserTile" type="checkbox" />Tile Series</label><label><input v-model="modal.data.laserXelent" type="checkbox" />Xelent Series</label></div><div v-else-if="modal.kind === 'cancel-customer'" class="form-grid"><label class="field wide">Reason <span class="required">*</span><input v-model="modal.data.cancelReason" required placeholder="Please enter the reason for cancellation" /></label></div><div v-else-if="modal.kind === 'another-customer'" class="confirm-text">Are you sure you want to add the same products again?</div><div v-else class="confirm-text">Confirm this operation?</div></div><div class="modal-foot"><button class="btn" type="button" @click="cancelModalStep">Cancel</button><button class="btn primary" type="submit">Confirm</button></div></form></section>
+    <OrderActionModal v-if="modal.show" :modal="modal" :order="modalOrder" @close="closeModal" @submit="submitModal" @edit-address="openAddressDetailModal" />
     <div v-if="addressDetailModal.show" class="address-detail-backdrop" @click.self="closeAddressDetailModal"></div>
     <section v-if="addressDetailModal.show" class="modal show address-modal address-detail-modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>Address Edit</h2><button class="btn icon" type="button" aria-label="Close" @click="closeAddressDetailModal"><X :size="18" /></button></div><form @submit.prevent="submitAddressDetailModal"><div class="modal-body address-detail-form"><label><span><i>*</i>Receiver</span><input v-model="addressDetailModal.data.receiver" required placeholder="Please enter the receiver" /></label><label><span><i>*</i>Contact Number</span><input v-model="addressDetailModal.data.phone" required placeholder="Please enter the contact number" /></label><label><span><i>*</i>Delivery Address</span><select v-model="addressDetailModal.data.country" required><option :value="addressDetailModal.data.country">{{ addressDetailModal.data.country }}</option><option>Afghanistan / Herat</option><option>Georgia / Tbilisi</option><option>Hong Kong / Kowloon</option></select></label><label><span><i>*</i>Detailed Address</span><input v-model="addressDetailModal.data.address" required placeholder="Please enter the detailed address" /></label></div><div class="modal-foot"><button class="btn" type="button" @click="closeAddressDetailModal">Cancel</button><button class="btn primary" type="submit">Submit</button></div></form></section>
     <div v-if="tilePreviewOpen" class="tile-preview-backdrop" @click.self="closeTilePreview"></div>
