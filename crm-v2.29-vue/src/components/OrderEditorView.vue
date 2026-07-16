@@ -128,7 +128,7 @@ function submitEditor() {
     </section>
 
     <section class="page editor-products-card">
-      <div class="editor-products-head">
+      <div v-if="mode !== 'itemno'" class="editor-products-head">
         <div class="editor-product-tabs bordered-product-tabs" role="tablist">
           <button type="button" :class="{ active: productTab === 'standard' }" @click="productTab = 'standard'">{{ isChinese ? "标准品" : "Standard Products" }}</button>
           <button type="button" :class="{ active: productTab === 'custom' }" @click="productTab = 'custom'">{{ isChinese ? "非标定制品" : "No-standard Products" }}</button>
