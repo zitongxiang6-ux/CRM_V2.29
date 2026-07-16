@@ -1,0 +1,6 @@
+crm-v2.29-vue/node_modules/
+crm-v2.29-vue/dist/
+
+*.log
+.DS_Store
+Thumbs.db

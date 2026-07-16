@@ -1,0 +1,133 @@
+﻿body {
+  margin:0px;
+  background-image:none;
+  position:relative;
+  left:0px;
+  width:1097px;
+  margin-left:auto;
+  margin-right:auto;
+  text-align:left;
+}
+.form_sketch {
+  border-color:transparent;
+  background-color:transparent;
+}
+#base {
+  position:absolute;
+  z-index:0;
+}
+#u4585 {
+  border-width:0px;
+  position:absolute;
+  left:0px;
+  top:0px;
+  width:0px;
+  height:0px;
+}
+#u4586_div {
+  border-width:0px;
+  position:absolute;
+  left:0px;
+  top:0px;
+  width:592px;
+  height:91px;
+  background:inherit;
+  background-color:rgba(132, 0, 255, 0.0980392156862745);
+  border:none;
+  border-radius:0px;
+  -moz-box-shadow:none;
+  -webkit-box-shadow:none;
+  box-shadow:none;
+  font-size:18px;
+  color:#FFFFFF;
+}
+#u4586 {
+  border-width:0px;
+  position:absolute;
+  left:0px;
+  top:0px;
+  width:592px;
+  height:91px;
+  display:flex;
+  font-size:18px;
+  color:#FFFFFF;
+}
+#u4586 .text {
+  position:absolute;
+  align-self:center;
+  padding:2px 2px 2px 2px;
+  box-sizing:border-box;
+  width:100%;
+}
+#u4586_text {
+  border-width:0px;
+  word-wrap:break-word;
+  text-transform:none;
+  visibility:hidden;
+}
+#u4587_div {
+  border-width:0px;
+  position:absolute;
+  left:0px;
+  top:0px;
+  width:555px;
+  height:79px;
+  background:inherit;
+  background-color:rgba(255, 255, 255, 0);
+  border:none;
+  border-radius:0px;
+  -moz-box-shadow:none;
+  -webkit-box-shadow:none;
+  box-shadow:none;
+}
+#u4587 {
+  border-width:0px;
+  position:absolute;
+  left:19px;
+  top:17px;
+  width:555px;
+  height:79px;
+  display:flex;
+}
+#u4587 .text {
+  position:absolute;
+  align-self:flex-start;
+  padding:0px 0px 0px 0px;
+  box-sizing:border-box;
+  width:100%;
+}
+#u4587_text {
+  border-width:0px;
+  word-wrap:break-word;
+  text-transform:none;
+}
+#u4588_img {
+  border-width:0px;
+  position:absolute;
+  left:0px;
+  top:0px;
+  width:1097px;
+  height:577px;
+}
+#u4588 {
+  border-width:0px;
+  position:absolute;
+  left:0px;
+  top:91px;
+  width:1097px;
+  height:577px;
+  display:flex;
+}
+#u4588 .text {
+  position:absolute;
+  align-self:center;
+  padding:2px 2px 2px 2px;
+  box-sizing:border-box;
+  width:100%;
+}
+#u4588_text {
+  border-width:0px;
+  word-wrap:break-word;
+  text-transform:none;
+  visibility:hidden;
+}

@@ -1,0 +1,1377 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HDL CRM V2.29 - International Orders</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --surface-2: #fafbfc;
+      --text: #30343b;
+      --muted: #7b8490;
+      --line: #e2e6eb;
+      --line-dark: #d1d7df;
+      --primary: #8d00c9;
+      --primary-dark: #69009a;
+      --primary-soft: #f7edfc;
+      --orange: #f28b18;
+      --orange-soft: #fff5e8;
+      --red: #ed3f3f;
+      --red-soft: #fff0f0;
+      --green: #1a9a68;
+      --green-soft: #eaf8f2;
+      --blue: #2574d8;
+      --blue-soft: #edf5ff;
+      --sidebar: 168px;
+      --radius: 4px;
+      --shadow: 0 6px 22px rgba(32, 39, 49, .10);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      font-size: 14px;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .48; }
+    input:focus, select:focus, textarea:focus, button:focus-visible {
+      outline: 2px solid rgba(141, 0, 201, .25);
+      outline-offset: 1px;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .app { min-height: 100vh; display: grid; grid-template-rows: 56px 1fr; }
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      gap: 18px;
+      position: sticky;
+      top: 0;
+      z-index: 60;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 126px;
+      color: var(--primary);
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .logo-box {
+      height: 32px;
+      padding: 0 9px;
+      display: grid;
+      place-items: center;
+      background: var(--primary);
+      color: #fff;
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 22px; }
+    .header-link { border: 0; background: transparent; color: var(--text); white-space: nowrap; }
+    .user { display: flex; align-items: center; gap: 8px; padding-left: 18px; border-left: 1px solid var(--line); white-space: nowrap; }
+    .user-mark { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+
+    .workspace { min-width: 0; display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      min-height: calc(100vh - 56px);
+      padding: 10px 0 22px;
+      position: sticky;
+      top: 56px;
+      height: calc(100vh - 56px);
+      overflow-y: auto;
+      z-index: 40;
+    }
+    .nav-section { margin-bottom: 6px; }
+    .nav-title {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 0;
+      background: transparent;
+      color: #555e68;
+      text-align: left;
+    }
+    .nav-title strong { font-weight: 500; }
+    .nav-icon { display: inline-grid; width: 19px; margin-right: 5px; color: var(--primary); text-align: center; }
+    .nav-items { display: grid; }
+    .nav-item {
+      min-height: 40px;
+      padding: 0 12px 0 43px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border: 0;
+      border-right: 2px solid transparent;
+      background: transparent;
+      color: #515a65;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .nav-item:hover { background: #faf7fc; }
+    .nav-item.active { color: var(--primary); background: var(--primary-soft); border-right-color: var(--primary); }
+    .nav-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; display: grid; place-items: center; border-radius: 10px; background: var(--red); color: #fff; font-size: 11px; }
+
+    .main { min-width: 0; padding: 12px 18px 28px; }
+    .mobile-menu { display: none; }
+    .breadcrumb { height: 30px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+    .breadcrumb strong { color: var(--text); font-weight: 500; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .page {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      min-width: 0;
+      box-shadow: 0 2px 8px rgba(32,39,49,.03);
+    }
+    .page-tabs {
+      min-height: 47px;
+      display: flex;
+      align-items: flex-end;
+      gap: 22px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .page-tab {
+      height: 47px;
+      padding: 0 14px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--text);
+    }
+    .page-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .page-body { padding: 16px; }
+    .mode-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .mode-switch, .status-tabs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .mode-switch { border: 1px solid var(--line-dark); border-radius: var(--radius); overflow: hidden; gap: 0; }
+    .mode-switch button {
+      min-height: 34px;
+      padding: 0 14px;
+      border: 0;
+      border-right: 1px solid var(--line-dark);
+      background: var(--surface);
+      color: var(--muted);
+    }
+    .mode-switch button:last-child { border-right: 0; }
+    .mode-switch button.active { background: var(--primary); color: #fff; }
+    .status-tabs { padding-bottom: 11px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+    .status-tab {
+      min-height: 31px;
+      padding: 0 11px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: transparent;
+      color: #59636e;
+    }
+    .status-tab:hover { background: var(--surface-2); }
+    .status-tab.active { color: var(--primary); border-color: #d8a5ea; background: var(--primary-soft); }
+    .count { margin-left: 3px; color: var(--muted); }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 10px 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .control { min-width: 0; }
+    .control label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 12px; }
+    .control input, .control select, .modal input, .modal select, .modal textarea, .drawer input {
+      width: 100%;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line-dark);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--text);
+    }
+    .control textarea, .modal textarea { min-height: 76px; padding-top: 8px; resize: vertical; }
+    .filter-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+    .btn {
+      min-height: 34px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid var(--line-dark);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: #aab3bd; background: var(--surface-2); }
+    .btn.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+    .btn.primary:hover { background: var(--primary-dark); }
+    .btn.purple-outline { border-color: #c984e4; color: var(--primary); background: #fff; }
+    .btn.orange-outline { border-color: #ffc98c; color: var(--orange); background: #fffaf4; }
+    .btn.red-outline { border-color: #ffb3b3; color: var(--red); background: #fff8f8; }
+    .btn.blue-outline { border-color: #a8c7ef; color: var(--blue); background: #f8fbff; }
+    .btn.small { min-height: 29px; padding: 0 9px; font-size: 12px; }
+    .btn.icon-only { width: 34px; padding: 0; color: var(--muted); }
+
+    .alert {
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      border: 1px solid #ffe0a3;
+      background: #fff9df;
+      color: #b86e00;
+      line-height: 1.5;
+    }
+    .table-shell { border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; white-space: nowrap; }
+    th { background: #f8f9fb; color: #4f5864; font-weight: 500; font-size: 12px; }
+    tbody tr:hover { background: #fcf9fd; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .money { color: var(--red); font-weight: 500; }
+    .link-btn { padding: 0; border: 0; background: transparent; color: var(--primary); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .pill.purple { background: var(--primary-soft); color: var(--primary-dark); }
+    .pill.orange { background: var(--orange-soft); color: #bd6808; }
+    .pill.red { background: var(--red-soft); color: #c22d2d; }
+    .pill.green { background: var(--green-soft); color: #137a53; }
+    .pill.blue { background: var(--blue-soft); color: #1f62b6; }
+    .pill.gray { background: #eef1f4; color: #65717c; }
+    .row-actions { display: flex; align-items: center; gap: 6px; }
+    .menu { position: relative; }
+    .menu-pop {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 5px);
+      width: 188px;
+      padding: 5px;
+      display: none;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      z-index: 25;
+    }
+    .menu.open .menu-pop { display: grid; }
+    .menu-pop button { min-height: 34px; padding: 0 10px; border: 0; background: transparent; color: var(--text); text-align: left; }
+    .menu-pop button:hover { background: var(--primary-soft); color: var(--primary); }
+    .pager {
+      min-height: 52px;
+      padding: 9px 12px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+    .page-num { width: 30px; height: 30px; border: 1px solid var(--primary); border-radius: var(--radius); background: #fff; color: var(--primary); }
+    .empty { display: none; padding: 50px 20px; text-align: center; color: var(--muted); }
+
+    .shop-tools { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .shop-search { width: min(420px, 100%); display: flex; gap: 8px; }
+    .shop-search input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--line-dark); border-radius: var(--radius); }
+    .product-grid { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 14px; }
+    .product-card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
+    .product-preview { height: 150px; display: grid; place-items: center; background: #f4f5f6; border-bottom: 1px solid var(--line); }
+    .panel-product { width: 92px; height: 92px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; padding: 8px; border: 1px solid #929aa3; background: linear-gradient(145deg,#eceff1,#bfc5ca); box-shadow: 0 8px 16px rgba(42,48,55,.12); }
+    .panel-product span { background: rgba(255,255,255,.44); border: 1px solid rgba(80,88,96,.22); }
+    .panel-product.gold { background: linear-gradient(145deg,#f7f2e7,#d8c4a2); border-color: #bca67f; }
+    .panel-product.black { background: linear-gradient(145deg,#565b61,#20242a); border-color: #171a1e; }
+    .product-info { padding: 13px; }
+    .product-name { min-height: 42px; margin: 0 0 8px; font-weight: 500; line-height: 1.5; }
+    .product-spec { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .product-foot { margin-top: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .price { color: var(--red); font-size: 18px; font-weight: 500; }
+
+    .cart-summary {
+      margin-top: 12px;
+      padding: 13px 14px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 18px;
+      background: #fafbfc;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .cart-summary strong { color: var(--red); font-size: 19px; }
+    .qty { width: 72px; height: 32px; padding: 0 6px; border: 1px solid var(--line-dark); border-radius: var(--radius); }
+    .inventory { margin-top: 3px; color: var(--red); font-size: 11px; }
+    .product-cell { display: flex; align-items: center; gap: 10px; }
+    .mini-product { width: 34px; height: 34px; border: 1px solid #9da5ac; background: linear-gradient(145deg,#ecf0f2,#bcc2c7); flex: 0 0 auto; }
+    .mini-product.gold { background: linear-gradient(145deg,#faf4e8,#d7c4a5); }
+    .custom-row { background: #fffdf8; }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(24, 29, 35, .42);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .18s ease, visibility .18s ease;
+    }
+    .backdrop.show { opacity: 1; visibility: visible; }
+    .modal {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 95;
+      width: min(760px, calc(100vw - 28px));
+      max-height: calc(100vh - 36px);
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      transform: translate(-50%, -46%);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+    }
+    .modal.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%); }
+    .modal-head, .modal-foot {
+      min-height: 58px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h2 { margin: 0; font-size: 17px; font-weight: 500; }
+    .modal-foot { border-top: 1px solid var(--line); border-bottom: 0; justify-content: flex-end; }
+    .modal-body { min-height: 0; padding: 18px; overflow-y: auto; }
+    .modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .modal-grid .wide { grid-column: 1 / -1; }
+    .field label { display: block; margin-bottom: 5px; color: #5f6974; font-size: 12px; }
+    .required { color: var(--red); }
+    .section-title { margin: 2px 0 12px; font-size: 15px; font-weight: 500; }
+    .section-sep { margin: 18px 0; border: 0; border-top: 1px solid var(--line); }
+    .info-strip { padding: 10px 12px; margin-bottom: 14px; background: var(--blue-soft); color: #315b89; border-left: 3px solid var(--blue); line-height: 1.55; }
+    .total-line { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; font-size: 15px; }
+    .upload {
+      min-height: 110px;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      border: 1px dashed #b7bfca;
+      border-radius: var(--radius);
+      background: #fafbfc;
+      color: var(--muted);
+      text-align: center;
+    }
+    .radio-row { display: flex; gap: 18px; flex-wrap: wrap; }
+    .radio-row label { display: flex; align-items: center; gap: 6px; }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 92;
+      width: min(760px, 100vw);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      box-shadow: -10px 0 30px rgba(32,39,49,.14);
+      transform: translateX(102%);
+      transition: transform .22s ease;
+    }
+    .drawer.show { transform: translateX(0); }
+    .drawer-head { min-height: 64px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+    .drawer-head h2 { margin: 0; font-size: 18px; font-weight: 500; }
+    .drawer-body { min-height: 0; flex: 1; padding: 18px; overflow-y: auto; }
+    .detail-top { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+    .detail-no { margin: 0 0 7px; font-size: 20px; font-weight: 500; }
+    .detail-sub { color: var(--muted); }
+    .detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 15px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); }
+    .detail-item span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 12px; }
+    .detail-tabs { display: flex; gap: 18px; margin-top: 18px; border-bottom: 1px solid var(--line); }
+    .detail-tab { padding: 11px 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); }
+    .detail-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .detail-pane { padding-top: 15px; }
+    .product-table { width: 100%; min-width: 660px; }
+    .timeline { display: grid; }
+    .timeline-item { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; }
+    .timeline-mark { position: relative; }
+    .timeline-mark::before { content: ""; position: absolute; top: 5px; left: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+    .timeline-mark::after { content: ""; position: absolute; top: 17px; bottom: 0; left: 8px; width: 1px; background: var(--line-dark); }
+    .timeline-item:last-child .timeline-mark::after { display: none; }
+    .timeline-content { padding-bottom: 18px; }
+    .timeline-content strong { display: block; margin-bottom: 4px; font-weight: 500; }
+    .timeline-content p { margin: 0 0 5px; color: #58626c; line-height: 1.55; }
+    .timeline-content time { color: var(--muted); font-size: 12px; }
+
+    .toast-wrap { position: fixed; right: 18px; bottom: 18px; z-index: 120; display: grid; gap: 8px; }
+    .toast { min-width: 280px; max-width: min(390px, calc(100vw - 36px)); padding: 12px 14px; border-radius: var(--radius); background: #252b33; color: #fff; box-shadow: var(--shadow); animation: toast-in .18s ease; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+
+    @media (max-width: 1180px) {
+      .filters { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .product-grid { grid-template-columns: repeat(3, minmax(190px, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      .workspace { display: block; }
+      .sidebar { position: fixed; left: 0; top: 56px; width: var(--sidebar); transform: translateX(-105%); transition: transform .2s ease; box-shadow: var(--shadow); }
+      .sidebar.show { transform: translateX(0); }
+      .main { padding: 10px 12px 22px; }
+      .mobile-menu { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line-dark); background: #fff; border-radius: var(--radius); }
+      .logo { min-width: 0; }
+      .logo > span:last-child { display: none; }
+      .header-link { display: none; }
+      .product-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 580px) {
+      .header { padding: 0 11px; gap: 10px; }
+      .header-actions { gap: 8px; }
+      .user { padding-left: 8px; }
+      .user span { display: none; }
+      .page-body { padding: 11px; }
+      .page-tabs { padding: 0 8px; }
+      .mode-row, .shop-tools, .cart-summary { align-items: stretch; flex-direction: column; }
+      .filters, .modal-grid, .detail-grid { grid-template-columns: 1fr; }
+      .filters { padding: 11px; }
+      .filter-actions, .modal-grid .wide { grid-column: auto; }
+      .filter-actions .btn, .modal-foot .btn { flex: 1; }
+      .product-grid { grid-template-columns: 1fr; }
+      .detail-top { flex-direction: column; }
+      .cart-summary { gap: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <button class="mobile-menu" id="mobileMenu" aria-label="打开导航">☰</button>
+      <div class="logo"><span class="logo-box">HDL</span><span>CRM</span></div>
+      <div class="header-actions">
+        <button class="header-link">消息中心</button>
+        <button class="header-link">系统设置</button>
+        <div class="user"><span class="user-mark">向</span><span>Hi~向紫彤</span></div>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar" id="sidebar">
+        <section class="nav-section">
+          <button class="nav-title"><strong><span class="nav-icon">□</span>方案中心</strong><span>⌄</span></button>
+        </section>
+        <section class="nav-section">
+          <button class="nav-title"><strong><span class="nav-icon">○</span>资料中心</strong><span>⌄</span></button>
+        </section>
+        <section class="nav-section">
+          <button class="nav-title"><strong><span class="nav-icon">☆</span>产品中心</strong><span>⌃</span></button>
+          <div class="nav-items">
+            <button class="nav-item" data-view="shop">优选商城</button>
+            <button class="nav-item" data-view="cart">购物车<span class="nav-badge" id="cartBadge">3</span></button>
+            <button class="nav-item">国际产品清单</button>
+          </div>
+        </section>
+        <section class="nav-section">
+          <button class="nav-title"><strong><span class="nav-icon">▤</span>订单中心</strong><span>⌃</span></button>
+          <div class="nav-items">
+            <button class="nav-item" data-view="orders" data-mode="admin">标品订单</button>
+            <button class="nav-item active" data-view="orders" data-mode="customer">客户订单</button>
+            <button class="nav-item">待确认订单</button>
+            <button class="nav-item">非标定制</button>
+            <button class="nav-item">缺货产品</button>
+          </div>
+        </section>
+        <section class="nav-section">
+          <button class="nav-title"><strong><span class="nav-icon">◇</span>合同中心</strong><span>⌄</span></button>
+        </section>
+      </aside>
+
+      <main class="main">
+        <div class="breadcrumb" id="breadcrumb">订单中心 <span>/</span> <strong>客户订单</strong></div>
+
+        <section class="view active" id="view-orders">
+          <div class="page">
+            <div class="page-tabs">
+              <button class="page-tab">国内</button>
+              <button class="page-tab active">国际</button>
+            </div>
+            <div class="page-body">
+              <div class="mode-row">
+                <div class="mode-switch" id="modeSwitch">
+                  <button data-mode="admin">标品订单</button>
+                  <button class="active" data-mode="customer">客户订单</button>
+                </div>
+                <span class="pill purple">CRM V2.29 International</span>
+              </div>
+
+              <div class="status-tabs" id="statusTabs"></div>
+
+              <div class="filters">
+                <div class="control"><label for="filterOrder">Order Number</label><input id="filterOrder" placeholder="Please enter order number"></div>
+                <div class="control"><label for="filterCustomer">Customer Name</label><input id="filterCustomer" placeholder="Please select a client"></div>
+                <div class="control"><label for="filterSource">Order Source</label><select id="filterSource"><option value="">Please select an order source</option><option>Preferred Shop</option><option>Customer Order</option></select></div>
+                <div class="control"><label for="filterStatus">Order Status</label><select id="filterStatus"><option value="">Please select an order status</option></select></div>
+                <div class="control"><label for="filterFrom">Order Date From</label><input id="filterFrom" type="date"></div>
+                <div class="control"><label for="filterTo">Order Date To</label><input id="filterTo" type="date"></div>
+                <div class="control"><label for="filterProject">Project Name</label><input id="filterProject" placeholder="Please enter a project name"></div>
+                <div class="control"><label for="filterErp">ERP No.</label><input id="filterErp" placeholder="Please enter an ERP No."></div>
+                <div class="filter-actions"><button class="btn" id="resetFilters">Reset</button><button class="btn primary" id="searchOrders">Search</button></div>
+              </div>
+
+              <div class="table-shell" id="orderTableShell">
+                <table>
+                  <thead id="orderHead"></thead>
+                  <tbody id="orderRows"></tbody>
+                </table>
+                <div class="pager"><span id="orderCount">Total 0</span><button class="btn icon-only" disabled>‹</button><button class="page-num">1</button><button class="btn icon-only" disabled>›</button><span>10 条/页</span></div>
+              </div>
+              <div class="empty" id="orderEmpty">No matching orders were found.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-shop">
+          <div class="page">
+            <div class="page-tabs"><button class="page-tab">Domestic</button><button class="page-tab active">International</button></div>
+            <div class="page-body">
+              <div class="shop-tools">
+                <div>
+                  <h1 style="margin:0 0 5px;font-size:20px;font-weight:500;">Preferred Shop</h1>
+                  <span style="color:var(--muted)">Standard and non-standard HDL products</span>
+                </div>
+                <div class="shop-search"><input id="shopSearch" placeholder="Search product name or code"><button class="btn primary" id="shopSearchBtn">Search</button></div>
+              </div>
+              <div class="product-grid" id="productGrid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-cart">
+          <div class="page">
+            <div class="page-tabs"><button class="page-tab">国内</button><button class="page-tab active">国际</button></div>
+            <div class="page-body">
+              <div class="alert">For products with insufficient inventory, stocking and delivery will be completed within 60 days after order submission and payment. Actual warehouse shipment shall prevail.</div>
+              <div class="mode-row">
+                <div class="row-actions"><button class="btn" id="massDelete" disabled>Mass Delete</button><button class="btn primary" id="massSubmit" disabled>Mass Submit</button></div>
+                <button class="btn" data-view-jump="shop">Continue Shopping</button>
+              </div>
+              <div class="table-shell">
+                <table>
+                  <thead><tr><th><input type="checkbox" id="selectAllCart" aria-label="Select all products"></th><th>Product Name</th><th>Product Type</th><th>Product Specification</th><th>Product Code</th><th>Market Price</th><th>Quantity</th><th>Total</th><th>Operation</th></tr></thead>
+                  <tbody id="cartRows"></tbody>
+                </table>
+              </div>
+              <div class="cart-summary"><span>Selected: <b id="cartSelected">0</b></span><span>Standard Products: <b id="standardCount">0</b></span><span>Non-standard Products: <b id="customCount">0</b></span><span>Total: <strong id="cartTotal">$0</strong></span><button class="btn primary" id="submitCart" disabled>Submit</button></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <section class="modal" id="actionModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head"><h2 id="modalTitle">Operation</h2><button class="btn icon-only" data-close-modal aria-label="Close">×</button></div>
+    <form id="actionForm">
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot"><button type="button" class="btn" data-close-modal>Cancel</button><button type="submit" class="btn primary" id="modalSubmit">Submit</button></div>
+    </form>
+  </section>
+
+  <aside class="drawer" id="orderDrawer" aria-labelledby="drawerTitle">
+    <div class="drawer-head"><h2 id="drawerTitle">Order Review</h2><button class="btn icon-only" data-close-drawer aria-label="Close">×</button></div>
+    <div class="drawer-body">
+      <div class="detail-top">
+        <div><h3 class="detail-no" id="detailNo"></h3><div class="detail-sub" id="detailCustomer"></div></div>
+        <span class="pill purple" id="detailStatus"></span>
+      </div>
+      <div class="detail-grid" id="detailGrid"></div>
+      <div class="detail-tabs">
+        <button class="detail-tab active" data-pane="products">Product Information</button>
+        <button class="detail-tab" data-pane="timeline">Order Progress</button>
+        <button class="detail-tab" data-pane="delivery">Delivery Address</button>
+      </div>
+      <div class="detail-pane" id="pane-products">
+        <div class="table-shell">
+          <table class="product-table">
+            <thead><tr><th>Product Name</th><th>Specification</th><th>Product Code</th><th>Quantity</th><th>Unit Price</th><th>Discount</th><th>Amount</th></tr></thead>
+            <tbody id="detailProducts"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="detail-pane" id="pane-timeline" hidden><div class="timeline" id="detailTimeline"></div></div>
+      <div class="detail-pane" id="pane-delivery" hidden><div class="detail-grid" id="deliveryGrid"></div></div>
+    </div>
+  </aside>
+
+  <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var STATUS = {
+        CONFIRM: "Pending Confirmation",
+        REVIEW: "Pending Review",
+        PRODUCTION: "In Production",
+        PAYMENT: "Pending Payment",
+        PAID: "Paid",
+        SHIPMENT: "Pending Shipment",
+        RECEIPT: "Pending Receipt",
+        COMPLETED: "Completed",
+        CLOSED: "Closed",
+        FAILED: "Review Failed"
+      };
+
+      var statusMeta = [
+        { key: "", customer: "All", admin: "全部" },
+        { key: STATUS.CONFIRM, customer: "Pending Confirmation", admin: "待确认" },
+        { key: STATUS.REVIEW, customer: "Pending Review", admin: "待审核" },
+        { key: STATUS.PRODUCTION, customer: "In Production", admin: "生产中" },
+        { key: STATUS.PAYMENT, customer: "Pending Payment", admin: "待付款" },
+        { key: STATUS.PAID, customer: "Paid", admin: "已付款" },
+        { key: STATUS.SHIPMENT, customer: "Pending Shipment", admin: "待发货" },
+        { key: STATUS.RECEIPT, customer: "Pending Receipt", admin: "待收货" },
+        { key: STATUS.COMPLETED, customer: "Completed", admin: "已完成" },
+        { key: STATUS.FAILED, customer: "Review Failed", admin: "审核不通过" },
+        { key: STATUS.CLOSED, customer: "Closed", admin: "交易关闭" }
+      ];
+
+      var orders = [
+        { id: 1, no: "DD-2026-07-1400001", customer: "DXIAJKMNDFD", project: "test1", projectNo: "XM-943898453", laser: "Yes", date: "2026-07-14", productTotal: 303.99, discount: "No discount", amount: 303.99, paid: 0, currency: "USD", status: STATUS.CONFIRM, erp: "", hdl: "HT-20260714001", contract: "HT-20260714001", tax: "Yes", owner: "向紫彤", source: "Customer Order", address: "格鲁吉亚萨梅格列罗-上斯瓦涅季亚州120", receiver: "Camellia", phone: "182938492830", shipping: "Freight Collect", logistics: "UPS", tracking: "", hasCustom: true },
+        { id: 2, no: "DD-2026-06-2500017", customer: "客户测试（勿删）", project: "International Test", projectNo: "43566754", laser: "Yes", date: "2026-06-25", productTotal: 329.8, discount: "No discount", amount: 329.8, paid: 0, currency: "HKD", status: STATUS.REVIEW, erp: "", hdl: "HDL-26062517", contract: "HT-2026-06-2500017", tax: "Tax included", owner: "渠道管理部主管", source: "Preferred Shop", address: "Hong Kong, China", receiver: "Jason", phone: "+852 6578 1024", shipping: "Freight Collect", logistics: "DHL", tracking: "", hasCustom: true },
+        { id: 3, no: "DD-2026-06-2500016", customer: "SXC国际有限公司", project: "Hotel", projectNo: "43566756", laser: "No", date: "2026-06-25", productTotal: 281, discount: "No discount", amount: 281, paid: 0, currency: "USD", status: STATUS.PRODUCTION, erp: "ERP-26062516", hdl: "HDL-26062516", contract: "HT-2026-06-2500016", tax: "Tax included", owner: "精致的土拨鼠", source: "Customer Order", address: "Dubai, United Arab Emirates", receiver: "Ahmed", phone: "+971 50 228 6731", shipping: "HDL Shipping", logistics: "UPS", tracking: "", hasCustom: true },
+        { id: 4, no: "DD-2026-06-2500015", customer: "SXC国际有限公司", project: "Residence", projectNo: "45366754", laser: "Yes", date: "2026-06-25", productTotal: 310, discount: "8%", amount: 285.2, paid: 0, currency: "USD", status: STATUS.PAYMENT, erp: "ERP-26062515", hdl: "HDL-26062515", contract: "HT-2026-06-2500015", tax: "Tax included", owner: "精致的土拨鼠", source: "Preferred Shop", address: "Tbilisi, Georgia", receiver: "Nina", phone: "+995 599 814 222", shipping: "Freight Collect", logistics: "DHL", tracking: "", hasCustom: false },
+        { id: 5, no: "DD-2026-06-2500014", customer: "Xelent International", project: "Smart Home", projectNo: "43566757", laser: "Yes", date: "2026-06-24", productTotal: 2754, discount: "No discount", amount: 2754, paid: 2754, currency: "USD", status: STATUS.PAID, erp: "ERP-26062514", hdl: "HDL-26062514", contract: "HT-2026-06-2500014", tax: "Tax included", owner: "李小雨", source: "Customer Order", address: "Berlin, Germany", receiver: "Anna", phone: "+49 172 552 8031", shipping: "HDL Shipping", logistics: "UPS", tracking: "", hasCustom: false },
+        { id: 6, no: "DD-2026-05-2700006", customer: "SXC国际有限公司", project: "Lighting", projectNo: "43566791", laser: "No", date: "2026-05-27", productTotal: 1185, discount: "5%", amount: 1125.75, paid: 1125.75, currency: "USD", status: STATUS.SHIPMENT, erp: "ERP-26052706", hdl: "HDL-26052706", contract: "HT-2026-05-2700006", tax: "Tax included", owner: "精致的土拨鼠", source: "Preferred Shop", address: "Singapore", receiver: "Evan", phone: "+65 9128 7742", shipping: "HDL Shipping", logistics: "DHL", tracking: "DHL90813374", hasCustom: false },
+        { id: 7, no: "DD-2026-05-2700005", customer: "客户测试（勿删）", project: "Office", projectNo: "43566792", laser: "Yes", date: "2026-05-27", productTotal: 667, discount: "No discount", amount: 667, paid: 667, currency: "HKD", status: STATUS.RECEIPT, erp: "ERP-26052705", hdl: "HDL-26052705", contract: "HT-2026-05-2700005", tax: "Tax included", owner: "向紫彤", source: "Customer Order", address: "Hong Kong, China", receiver: "Lucy", phone: "+852 6321 8988", shipping: "Freight Collect", logistics: "SF Express", tracking: "SF1148025677", hasCustom: true },
+        { id: 8, no: "DD-2026-05-2700004", customer: "River East Preferred", project: "Apartment", projectNo: "43566793", laser: "No", date: "2026-05-20", productTotal: 920, discount: "10%", amount: 828, paid: 828, currency: "USD", status: STATUS.COMPLETED, erp: "ERP-26052704", hdl: "HDL-26052704", contract: "HT-2026-05-2700004", tax: "Tax included", owner: "王雪", source: "Preferred Shop", address: "Kuala Lumpur, Malaysia", receiver: "Lim", phone: "+60 12 887 6301", shipping: "HDL Shipping", logistics: "DHL", tracking: "DHL90116288", hasCustom: false },
+        { id: 9, no: "DD-2026-05-2700003", customer: "Review Test Ltd.", project: "Villa", projectNo: "43566794", laser: "Yes", date: "2026-05-18", productTotal: 512, discount: "No discount", amount: 512, paid: 0, currency: "USD", status: STATUS.FAILED, erp: "", hdl: "HDL-26052703", contract: "", tax: "Tax included", owner: "向紫彤", source: "Customer Order", address: "Madrid, Spain", receiver: "Carlos", phone: "+34 612 430 889", shipping: "Freight Collect", logistics: "UPS", tracking: "", hasCustom: true }
+      ];
+
+      var products = [
+        { id: 101, name: "Tile Series 3 Buttons Smart Panel 2.1", type: "Core Products", spec: "Color: Space Gray; Material: Metal", code: "308013719", price: 102, tone: "", shortage: true, custom: false },
+        { id: 102, name: "Tile Series 3 Buttons Smart Panel 2.1", type: "Core Products", spec: "Color: Champagne Gold; Material: Plastic", code: "308013722", price: 80, tone: "gold", shortage: false, custom: false },
+        { id: 103, name: "Tile Series 2 Buttons Smart Panel 2.1", type: "Core Products", spec: "Color: Space Gray; Material: Metal", code: "308013713", price: 95, tone: "", shortage: true, custom: false },
+        { id: 104, name: "Tile Series 2 Buttons Smart Panel 2.1", type: "Non-standard Products", spec: "Space Gray-Metal; Laser Engraving", code: "308013713-C", price: 0, tone: "black", shortage: false, custom: true }
+      ];
+
+      var cart = [
+        { id: 101, qty: 1, selected: false },
+        { id: 102, qty: 1, selected: false },
+        { id: 103, qty: 1, selected: false }
+      ];
+
+      var mode = "customer";
+      var activeStatus = "";
+      var currentAction = "";
+      var currentOrderId = null;
+
+      function qs(selector, root) { return (root || document).querySelector(selector); }
+      function qsa(selector, root) { return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+      function esc(value) {
+        return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char];
+        });
+      }
+      function money(value, currency) {
+        var symbol = currency === "HKD" ? "HK$" : "$";
+        return symbol + Number(value).toFixed(2).replace(/\.00$/, "");
+      }
+      function getOrder(id) { return orders.find(function (item) { return item.id === Number(id); }); }
+      function getProduct(id) { return products.find(function (item) { return item.id === Number(id); }); }
+      function labelForStatus(status, targetMode) {
+        var item = statusMeta.find(function (meta) { return meta.key === status; });
+        return item ? item[targetMode || mode] : status;
+      }
+      function statusClass(status) {
+        if (status === STATUS.FAILED || status === STATUS.CLOSED) return "red";
+        if (status === STATUS.COMPLETED || status === STATUS.PAID) return "green";
+        if (status === STATUS.PRODUCTION || status === STATUS.SHIPMENT || status === STATUS.RECEIPT) return "blue";
+        if (status === STATUS.PAYMENT) return "orange";
+        return "purple";
+      }
+      function showToast(message) {
+        var node = document.createElement("div");
+        node.className = "toast";
+        node.textContent = message;
+        qs("#toastWrap").appendChild(node);
+        window.setTimeout(function () { node.remove(); }, 2800);
+      }
+
+      function showView(name, nextMode) {
+        qsa(".view").forEach(function (view) { view.classList.remove("active"); });
+        qs("#view-" + name).classList.add("active");
+        qsa(".nav-item").forEach(function (item) {
+          var matchesView = item.dataset.view === name;
+          var matchesMode = name !== "orders" || !item.dataset.mode || item.dataset.mode === (nextMode || mode);
+          item.classList.toggle("active", matchesView && matchesMode);
+        });
+        if (name === "orders") {
+          if (nextMode) setMode(nextMode);
+          qs("#breadcrumb").innerHTML = "订单中心 <span>/</span> <strong>" + (mode === "customer" ? "客户订单" : "标品订单") + "</strong>";
+        } else if (name === "cart") {
+          qs("#breadcrumb").innerHTML = "产品中心 <span>/</span> <strong>购物车</strong>";
+          renderCart();
+        } else {
+          qs("#breadcrumb").innerHTML = "产品中心 <span>/</span> <strong>优选商城</strong>";
+          renderShop();
+        }
+        closeSidebar();
+        window.scrollTo(0, 0);
+      }
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        qsa("#modeSwitch button").forEach(function (button) { button.classList.toggle("active", button.dataset.mode === mode); });
+        qsa(".nav-item[data-mode]").forEach(function (button) { button.classList.toggle("active", button.dataset.mode === mode); });
+        activeStatus = "";
+        renderStatusTabs();
+        renderStatusSelect();
+        renderOrders();
+      }
+
+      function renderStatusTabs() {
+        var root = qs("#statusTabs");
+        root.innerHTML = "";
+        statusMeta.forEach(function (meta) {
+          var count = meta.key ? orders.filter(function (order) { return order.status === meta.key; }).length : orders.length;
+          var button = document.createElement("button");
+          button.className = "status-tab" + (activeStatus === meta.key ? " active" : "");
+          button.dataset.status = meta.key;
+          button.innerHTML = esc(meta[mode]) + '<span class="count">(' + count + ')</span>';
+          root.appendChild(button);
+        });
+      }
+
+      function renderStatusSelect() {
+        var select = qs("#filterStatus");
+        var first = mode === "customer" ? "Please select an order status" : "请选择订单状态";
+        select.innerHTML = '<option value="">' + first + '</option>';
+        statusMeta.slice(1).forEach(function (meta) {
+          select.insertAdjacentHTML("beforeend", '<option value="' + esc(meta.key) + '">' + esc(meta[mode]) + '</option>');
+        });
+      }
+
+      function customerActions(status) {
+        var common = ["Review"];
+        if (status === STATUS.CONFIRM) return common.concat(["Confirm Requirements", "Set Fees", "Modify Address", "Another Order", "Cancel Order", "Link Tile Laser Engraving"]);
+        if (status === STATUS.REVIEW) return common.concat(["Modify Order", "Set Discount Price", "Set Fees", "Modify Address", "Another Order", "Cancel Order"]);
+        if (status === STATUS.PRODUCTION) return common.concat(["Modify Order", "Set Discount Price", "Set Fees", "Modify Address", "Another Order", "Cancel Order"]);
+        if (status === STATUS.PAYMENT) return common.concat(["To Pay", "Modify Order", "Set Discount Price", "Set Fees", "Modify Address", "Another Order", "Cancel Order"]);
+        if (status === STATUS.PAID || status === STATUS.SHIPMENT) return common.concat(["Modify Address", "Modify Order", "Another Order", "Cancel Order"]);
+        if (status === STATUS.RECEIPT || status === STATUS.COMPLETED) return common.concat(["Another Order"]);
+        if (status === STATUS.FAILED) return common.concat(["Confirm Requirements", "Modify Order", "Cancel Order"]);
+        return common.concat(["Another Order"]);
+      }
+
+      function adminActions(status) {
+        var common = ["查看"];
+        if (status === STATUS.CONFIRM) return common.concat(["设置费用", "变更业务员", "订单备注", "修改地址", "设置折扣价格", "取消订单", "关联XX镭雕", "删除数据"]);
+        if (status === STATUS.REVIEW) return common.concat(["审核", "变更订单", "变更业务员", "订单备注", "修改地址", "设置折扣价格", "设置费用", "取消订单", "关联XX镭雕", "删除数据"]);
+        if (status === STATUS.PRODUCTION) return common.concat(["录入品号", "变更订单", "变更业务员", "订单备注", "修改地址", "设置折扣价格", "设置费用", "取消订单", "关联XX镭雕"]);
+        if (status === STATUS.PAYMENT) return common.concat(["付款凭证", "变更订单", "变更业务员", "订单备注", "修改地址", "设置折扣价格", "设置费用", "取消订单", "关联XX镭雕", "删除数据"]);
+        if (status === STATUS.PAID) return common.concat(["确认发货", "付款凭证", "变更订单", "变更业务员", "订单备注", "修改地址", "取消订单", "关联XX镭雕", "删除数据"]);
+        if (status === STATUS.SHIPMENT) return common.concat(["付款凭证", "再来一单", "变更订单", "变更业务员", "订单备注", "修改地址", "取消订单", "关联XX镭雕", "删除数据"]);
+        if (status === STATUS.RECEIPT) return common.concat(["付款凭证", "变更业务员", "再来一单", "删除数据"]);
+        if (status === STATUS.COMPLETED) return common.concat(["变更业务员", "再来一单"]);
+        return common.concat(["再来一单", "变更业务员", "删除数据"]);
+      }
+
+      function actionKey(label) {
+        var map = {
+          "Review": "view", "查看": "view",
+          "Confirm Requirements": "confirm", "确认需求": "confirm",
+          "Set Fees": "fees", "设置费用": "fees",
+          "审核": "audit",
+          "录入品号": "itemNo",
+          "To Pay": "pay", "去付款": "pay",
+          "确认发货": "shipment",
+          "Modify Address": "address", "修改地址": "address",
+          "Set Discount Price": "discount", "设置折扣价格": "discount",
+          "Modify Order": "modify", "变更订单": "modify",
+          "Another Order": "another", "再来一单": "another",
+          "Cancel Order": "cancel", "取消订单": "cancel",
+          "Link Tile Laser Engraving": "laser", "关联XX镭雕": "laser",
+          "付款凭证": "voucher",
+          "订单备注": "note",
+          "变更业务员": "owner",
+          "删除数据": "delete"
+        };
+        return map[label] || "noop";
+      }
+
+      function renderOrders() {
+        var isCustomer = mode === "customer";
+        qs("#orderHead").innerHTML = isCustomer
+          ? "<tr><th>Order Number</th><th>Customer Name</th><th>Project Name</th><th>Laser Engraving Required</th><th>Order Time</th><th>Product Total</th><th>Whole Order Discount</th><th>Total Amount Payable</th><th>Order Status</th><th>Operation</th></tr>"
+          : "<tr><th>订单编号</th><th>客户名称</th><th>项目名称</th><th>ERP编号</th><th>是否镭雕</th><th>业务员</th><th>下单时间</th><th>产品总计</th><th>整单折扣</th><th>订单状态</th><th>操作</th></tr>";
+
+        var queryNo = qs("#filterOrder").value.trim().toLowerCase();
+        var queryCustomer = qs("#filterCustomer").value.trim().toLowerCase();
+        var source = qs("#filterSource").value;
+        var selectStatus = qs("#filterStatus").value;
+        var project = qs("#filterProject").value.trim().toLowerCase();
+        var erp = qs("#filterErp").value.trim().toLowerCase();
+        var from = qs("#filterFrom").value;
+        var to = qs("#filterTo").value;
+        var filterStatus = activeStatus || selectStatus;
+        var filtered = orders.filter(function (order) {
+          return (!queryNo || order.no.toLowerCase().indexOf(queryNo) > -1)
+            && (!queryCustomer || order.customer.toLowerCase().indexOf(queryCustomer) > -1)
+            && (!source || order.source === source)
+            && (!filterStatus || order.status === filterStatus)
+            && (!project || order.project.toLowerCase().indexOf(project) > -1)
+            && (!erp || order.erp.toLowerCase().indexOf(erp) > -1)
+            && (!from || order.date >= from)
+            && (!to || order.date <= to);
+        });
+
+        var body = qs("#orderRows");
+        body.innerHTML = "";
+        filtered.forEach(function (order) {
+          var actions = isCustomer ? customerActions(order.status) : adminActions(order.status);
+          var primaryLabel = actions[0];
+          var nextLabel = actions.length > 1 ? actions[1] : "";
+          var rest = actions.slice(nextLabel ? 2 : 1);
+          var menuHtml = rest.map(function (label) {
+            return '<button type="button" data-action="' + actionKey(label) + '" data-id="' + order.id + '">' + esc(label) + '</button>';
+          }).join("");
+          var actionHtml = '<div class="row-actions">'
+            + '<button class="btn small purple-outline" data-action="' + actionKey(primaryLabel) + '" data-id="' + order.id + '">' + esc(primaryLabel) + '</button>'
+            + (nextLabel ? '<button class="btn small orange-outline" data-action="' + actionKey(nextLabel) + '" data-id="' + order.id + '">' + esc(nextLabel) + '</button>' : "")
+            + (rest.length ? '<div class="menu"><button class="btn small icon-only more-btn" type="button" aria-label="More actions">•••</button><div class="menu-pop">' + menuHtml + '</div></div>' : "")
+            + "</div>";
+          var tr = document.createElement("tr");
+          tr.dataset.id = order.id;
+          if (isCustomer) {
+            tr.innerHTML = '<td><button class="link-btn" data-action="view" data-id="' + order.id + '">' + esc(order.no) + '</button></td>'
+              + "<td>" + esc(order.customer) + "</td><td>" + esc(order.project) + "</td><td>" + esc(order.laser) + "</td><td>" + esc(order.date) + "</td>"
+              + '<td class="money">' + money(order.productTotal, order.currency) + "</td><td>" + esc(order.discount) + '</td><td class="money">' + money(order.amount, order.currency) + "</td>"
+              + '<td><span class="pill ' + statusClass(order.status) + '">' + esc(labelForStatus(order.status)) + "</span></td><td>" + actionHtml + "</td>";
+          } else {
+            tr.innerHTML = '<td><button class="link-btn" data-action="view" data-id="' + order.id + '">' + esc(order.no) + '</button></td>'
+              + "<td>" + esc(order.customer) + "</td><td>" + esc(order.project) + "</td><td>" + esc(order.erp || "-") + "</td><td>" + (order.laser === "Yes" ? "Xelent:是" : "否") + "</td>"
+              + "<td>" + esc(order.owner) + "</td><td>" + esc(order.date) + '</td><td class="money">' + money(order.productTotal, order.currency) + "</td><td>" + esc(order.discount) + "</td>"
+              + '<td><span class="pill ' + statusClass(order.status) + '">' + esc(labelForStatus(order.status)) + "</span></td><td>" + actionHtml + "</td>";
+          }
+          body.appendChild(tr);
+        });
+        qs("#orderCount").textContent = (isCustomer ? "Total " : "共") + filtered.length + (isCustomer ? "" : "条");
+        qs("#orderTableShell").style.display = filtered.length ? "" : "none";
+        qs("#orderEmpty").style.display = filtered.length ? "none" : "block";
+      }
+
+      function renderShop() {
+        var query = qs("#shopSearch").value.trim().toLowerCase();
+        var filtered = products.filter(function (product) {
+          return !query || product.name.toLowerCase().indexOf(query) > -1 || product.code.toLowerCase().indexOf(query) > -1;
+        });
+        qs("#productGrid").innerHTML = filtered.map(function (product) {
+          return '<article class="product-card"><div class="product-preview"><div class="panel-product ' + product.tone + '"><span></span><span></span><span></span><span></span></div></div>'
+            + '<div class="product-info"><h2 class="product-name">' + esc(product.name) + '</h2><div class="product-spec">' + esc(product.spec) + '<br>Product Code: ' + esc(product.code) + '</div>'
+            + '<div class="product-foot"><span class="price">' + (product.custom ? "TBD" : money(product.price, "USD")) + '</span><button class="btn primary small" data-add-cart="' + product.id + '">Add to Cart</button></div></div></article>';
+        }).join("");
+      }
+
+      function renderCart() {
+        var body = qs("#cartRows");
+        body.innerHTML = "";
+        cart.forEach(function (line) {
+          var product = getProduct(line.id);
+          var total = product.price * line.qty;
+          var tr = document.createElement("tr");
+          tr.className = product.custom ? "custom-row" : "";
+          tr.innerHTML = '<td><input class="cart-check" type="checkbox" data-id="' + product.id + '" ' + (line.selected ? "checked" : "") + ' aria-label="Select ' + esc(product.name) + '"></td>'
+            + '<td><div class="product-cell"><span class="mini-product ' + product.tone + '"></span><span><strong>' + esc(product.name) + '</strong><br><span style="color:var(--muted);font-size:12px">' + (product.custom ? "Non-standard customization: Laser Engraving" : "Standard Product") + "</span></span></div></td>"
+            + "<td>" + esc(product.type) + "</td><td>" + esc(product.spec) + "</td><td>" + esc(product.code) + "</td>"
+            + '<td class="money">' + (product.custom ? "TBD" : money(product.price, "USD")) + '</td><td><input class="qty" type="number" min="1" max="99" value="' + line.qty + '" data-qty="' + product.id + '">' + (product.shortage ? '<div class="inventory">Inventory Shortage</div>' : "") + "</td>"
+            + '<td class="money">' + (product.custom ? "TBD" : money(total, "USD")) + '</td><td><div class="row-actions"><button class="btn small purple-outline" data-cart-view="' + product.id + '">View</button><button class="btn small red-outline" data-cart-delete="' + product.id + '">Delete</button></div></td>';
+          body.appendChild(tr);
+        });
+        updateCartSummary();
+      }
+
+      function updateCartSummary() {
+        var selected = cart.filter(function (line) { return line.selected; });
+        var total = selected.reduce(function (sum, line) {
+          var product = getProduct(line.id);
+          return sum + (product.custom ? 0 : product.price * line.qty);
+        }, 0);
+        var standard = selected.filter(function (line) { return !getProduct(line.id).custom; }).length;
+        var custom = selected.length - standard;
+        qs("#cartSelected").textContent = selected.length;
+        qs("#standardCount").textContent = standard;
+        qs("#customCount").textContent = custom;
+        qs("#cartTotal").textContent = money(total, "USD") + (custom ? " + TBD" : "");
+        qs("#massDelete").disabled = selected.length === 0;
+        qs("#massSubmit").disabled = selected.length === 0;
+        qs("#submitCart").disabled = selected.length === 0;
+        qs("#cartBadge").textContent = cart.length;
+      }
+
+      function openDrawer(order) {
+        if (!order) return;
+        currentOrderId = order.id;
+        qs("#detailNo").textContent = order.no;
+        qs("#detailCustomer").textContent = order.customer + " · " + order.project;
+        qs("#detailStatus").className = "pill " + statusClass(order.status);
+        qs("#detailStatus").textContent = labelForStatus(order.status);
+        qs("#detailGrid").innerHTML =
+          '<div class="detail-item"><span>Person in Charge</span><strong>' + esc(order.owner) + '</strong></div>'
+          + '<div class="detail-item"><span>Order Time</span><strong>' + esc(order.date) + '</strong></div>'
+          + '<div class="detail-item"><span>Order Total</span><strong class="money">' + money(order.amount, order.currency) + '</strong></div>'
+          + '<div class="detail-item"><span>Project Number</span><strong>' + esc(order.projectNo) + '</strong></div>'
+          + '<div class="detail-item"><span>HDL Ref No.</span><strong>' + esc(order.hdl) + '</strong></div>'
+          + '<div class="detail-item"><span>ERP Order No.</span><strong>' + esc(order.erp || "-") + '</strong></div>'
+          + '<div class="detail-item"><span>Contract Number</span><strong>' + esc(order.contract || "-") + '</strong></div>'
+          + '<div class="detail-item"><span>Payment Currency</span><strong>' + esc(order.currency) + '</strong></div>'
+          + '<div class="detail-item"><span>Whether Tax Included</span><strong>' + esc(order.tax) + '</strong></div>';
+        qs("#detailProducts").innerHTML =
+          '<tr><td>Tile Series 2 Buttons Smart Panel 2.1</td><td>Space Gray-Metal</td><td>308013713</td><td>1</td><td>$95</td><td>0.8</td><td class="money">$76</td></tr>'
+          + (order.hasCustom ? '<tr class="custom-row"><td>Tile Series 2 Buttons Smart Panel 2.1</td><td>Laser Engraving: black and blue</td><td>' + (order.erp ? "435567007" : "Pending") + '</td><td>1</td><td>TBD</td><td>-</td><td>TBD</td></tr>' : "");
+        qs("#detailTimeline").innerHTML = buildTimeline(order);
+        qs("#deliveryGrid").innerHTML =
+          '<div class="detail-item"><span>Receiver</span><strong>' + esc(order.receiver) + '</strong></div>'
+          + '<div class="detail-item"><span>Contact Number</span><strong>' + esc(order.phone) + '</strong></div>'
+          + '<div class="detail-item"><span>Shipping Method</span><strong>' + esc(order.shipping) + '</strong></div>'
+          + '<div class="detail-item"><span>Logistics Company</span><strong>' + esc(order.logistics) + '</strong></div>'
+          + '<div class="detail-item"><span>Tracking Number</span><strong>' + esc(order.tracking || "-") + '</strong></div>'
+          + '<div class="detail-item" style="grid-column:1/-1"><span>Delivery Address</span><strong>' + esc(order.address) + '</strong></div>';
+        activateDetailPane("products");
+        qs("#orderDrawer").classList.add("show");
+        qs("#backdrop").classList.add("show");
+      }
+
+      function buildTimeline(order) {
+        var steps = [
+          { status: STATUS.CONFIRM, title: "Order Submitted", note: "The customer submitted the international order." },
+          { status: STATUS.REVIEW, title: "Requirements Confirmation", note: "The Sales Manager confirmed the submitted requirements." },
+          { status: STATUS.PRODUCTION, title: "Order Review", note: "The Sales Management Department approved the requirements." },
+          { status: STATUS.PAYMENT, title: "Non-standard Production", note: "HDL completed non-standard product coding." },
+          { status: STATUS.PAID, title: "Order Paid", note: "The customer uploaded the payment voucher." },
+          { status: STATUS.SHIPMENT, title: "Shipment Confirmed", note: "HDL checked the payment voucher and confirmed shipment." },
+          { status: STATUS.RECEIPT, title: "Dispatched", note: "The ERP warehouse shipped the order." },
+          { status: STATUS.COMPLETED, title: "Receipt Confirmed", note: "The customer confirmed receipt." }
+        ];
+        var orderIndex = steps.findIndex(function (step) { return step.status === order.status; });
+        if (order.status === STATUS.FAILED) orderIndex = 1;
+        if (order.status === STATUS.CLOSED) orderIndex = 0;
+        return steps.slice(0, Math.max(0, orderIndex) + 1).reverse().map(function (step, index) {
+          var note = step.note;
+          if (index === 0 && order.status === STATUS.FAILED) note = "Review failed. Please modify and resubmit the requirements.";
+          return '<div class="timeline-item"><div class="timeline-mark"></div><div class="timeline-content"><strong>' + esc(step.title) + '</strong><p>' + esc(note) + '</p><time>' + esc(order.date) + ' 11:' + String(43 + index).padStart(2, "0") + ':03</time></div></div>';
+        }).join("");
+      }
+
+      function activateDetailPane(name) {
+        qsa(".detail-tab").forEach(function (button) { button.classList.toggle("active", button.dataset.pane === name); });
+        ["products", "timeline", "delivery"].forEach(function (pane) { qs("#pane-" + pane).hidden = pane !== name; });
+      }
+
+      function closeDrawer() {
+        qs("#orderDrawer").classList.remove("show");
+        if (!qs("#actionModal").classList.contains("show") && !qs("#sidebar").classList.contains("show")) qs("#backdrop").classList.remove("show");
+      }
+
+      function field(label, name, value, options) {
+        options = options || {};
+        var wide = options.wide ? " wide" : "";
+        var required = options.required ? ' <span class="required">*</span>' : "";
+        if (options.type === "textarea") return '<div class="field' + wide + '"><label for="m-' + name + '">' + label + required + '</label><textarea id="m-' + name + '" name="' + name + '" ' + (options.required ? "required" : "") + '>' + esc(value || "") + '</textarea></div>';
+        if (options.type === "select") return '<div class="field' + wide + '"><label for="m-' + name + '">' + label + required + '</label><select id="m-' + name + '" name="' + name + '">' + options.items.map(function (item) { return '<option' + (item === value ? " selected" : "") + ">" + esc(item) + "</option>"; }).join("") + "</select></div>";
+        return '<div class="field' + wide + '"><label for="m-' + name + '">' + label + required + '</label><input id="m-' + name + '" name="' + name + '" type="' + (options.type || "text") + '" value="' + esc(value || "") + '" ' + (options.required ? "required" : "") + "></div>";
+      }
+
+      function openAction(action, id) {
+        var order = getOrder(id);
+        if (!order) return;
+        currentAction = action;
+        currentOrderId = order.id;
+        if (action === "view") { openDrawer(order); return; }
+        if (action === "another") { duplicateOrder(order); return; }
+        if (action === "delete") { deleteOrder(order); return; }
+        if (action === "noop") { showToast("The selected prototype entry has responded."); return; }
+
+        var title = "Operation";
+        var submit = mode === "customer" ? "Submit" : "提交";
+        var html = "";
+        if (action === "confirm") {
+          title = "Confirm Requirements";
+          html = '<div class="info-strip">Confirm product quantities and set international order fees. After submission, the order enters Pending Review.</div>'
+            + '<h3 class="section-title">Product Information</h3><div class="table-shell"><table style="min-width:620px"><thead><tr><th>Product Name</th><th>Code</th><th>Quantity</th><th>Unit Price</th><th>Operation</th></tr></thead><tbody><tr><td>Tile Series 2 Buttons Smart Panel 2.1</td><td>308013713</td><td><input style="width:68px" type="number" min="1" value="1"></td><td>$95</td><td><button type="button" class="link-btn">Delete</button></td></tr></tbody></table></div>'
+            + '<hr class="section-sep"><h3 class="section-title">Set Fees</h3><div class="modal-grid">'
+            + field("HDL Ref No.", "hdl", order.hdl, { required: true }) + field("P.O. No.", "po", "", {})
+            + field("Freight", "freight", "0", { type: "number" }) + field("Certificate Fee", "certificate", "0", { type: "number" })
+            + field("Other Fee", "other", "0", { type: "number" }) + field("Handling Fee", "handling", "0", { type: "number" })
+            + field("Payment Method", "payment", "EURO", { type: "select", items: ["EURO", "USD", "Hong Kong dollar"] }) + field("Exchange Rate", "rate", "1", { type: "number" }) + "</div>"
+            + '<div class="total-line">Total Amount Payable: <strong class="money" id="feeTotal">' + money(order.amount, order.currency) + "</strong></div>";
+        } else if (action === "fees") {
+          title = mode === "customer" ? "Set Fees" : "设置费用";
+          html = '<div class="info-strip">Order Total: <strong>' + money(order.productTotal, order.currency) + '</strong></div><div class="modal-grid">'
+            + field("Freight", "freight", "0", { type: "number" }) + field("Certificate Fee", "certificate", "0", { type: "number" })
+            + field("Other Fee", "other", "0", { type: "number" }) + field("Handling Fee", "handling", "0", { type: "number" })
+            + field("Payment Method", "payment", order.currency, { type: "select", items: ["USD", "HKD", "EURO"] }) + field("Exchange Rate", "rate", "1", { type: "number" }) + "</div>"
+            + '<div class="total-line">Total Amount Payable: <strong class="money" id="feeTotal">' + money(order.amount, order.currency) + "</strong></div>";
+        } else if (action === "audit") {
+          title = "审核";
+          html = '<div class="info-strip">审核通过后，标准品将同步至 ERP 生成销售订单；含非标定制的订单进入生产中。</div><div class="modal-grid"><div class="field wide"><label>审核结果</label><div class="radio-row"><label><input type="radio" name="auditResult" value="pass" checked> 审核通过</label><label><input type="radio" name="auditResult" value="fail"> 审核不通过</label></div></div>' + field("审核备注", "auditNote", "", { type: "textarea", wide: true }) + "</div>";
+        } else if (action === "itemNo") {
+          title = "录入非标品号";
+          html = '<div class="info-strip">必须填写所有非标产品行的品号后才可提交。保存并同步 ERP 不推进流程节点。</div><div class="table-shell"><table style="min-width:650px"><thead><tr><th>产品名称</th><th>非标定制需求</th><th>数量</th><th>非标品编码</th><th>同步ERP状态</th></tr></thead><tbody><tr><td>Tile Series 2 Buttons Smart Panel 2.1</td><td>Laser Engraving: black and blue</td><td>1</td><td><input id="m-itemNo" name="itemNo" placeholder="请输入品号" required></td><td><span class="pill orange">未同步</span></td></tr></tbody></table></div><div style="margin-top:12px;text-align:right"><button type="button" class="btn blue-outline" id="saveErp">保存并同步ERP</button></div>';
+        } else if (action === "pay") {
+          title = "To Pay";
+          html = '<div class="info-strip">Total Amount Payable: <strong>' + money(order.amount, order.currency) + '</strong></div><div class="modal-grid">'
+            + field("Payment Method", "paymentMethod", "Offline Bank Transfer", { type: "select", items: ["Offline Bank Transfer", "EURO", "Hong Kong dollar"] })
+            + field("Payment Amount", "payAmount", order.amount, { type: "number", required: true })
+            + '<div class="field wide"><label>Proof of Payment <span class="required">*</span></label><label class="upload"><input id="m-voucher" type="file" style="width:auto;height:auto;border:0;background:transparent">Upload payment voucher</label></div>'
+            + field("Payment Remarks", "payNote", "", { type: "textarea", wide: true }) + "</div>";
+        } else if (action === "shipment") {
+          title = "确认发货";
+          html = '<div class="modal-grid">' + field("物流公司", "logistics", order.logistics, { type: "select", items: ["DHL", "UPS", "SF Express", "FedEx"] }) + field("运单号", "tracking", order.tracking, { required: true }) + field("发货备注", "shipNote", "", { type: "textarea", wide: true }) + "</div>";
+        } else if (action === "address") {
+          title = mode === "customer" ? "Modify Address" : "修改地址";
+          html = '<div class="modal-grid">' + field("Receiver", "receiver", order.receiver, { required: true }) + field("Contact Number", "phone", order.phone, { required: true }) + field("Shipping Method", "shipping", order.shipping, { type: "select", items: ["Freight Collect", "HDL Shipping"] }) + field("Logistics Company", "logistics", order.logistics, { type: "select", items: ["UPS", "DHL", "FedEx", "SF Express"] }) + field("Delivery Address", "address", order.address, { type: "textarea", wide: true, required: true }) + field("Dispatch Requirement", "dispatch", "Ship together", { type: "textarea", wide: true }) + "</div>";
+        } else if (action === "discount") {
+          title = mode === "customer" ? "Set Discount Price" : "设置折扣价格";
+          html = '<div class="table-shell"><table style="min-width:650px"><thead><tr><th>Product Name</th><th>Original Subtotal</th><th>Modified Discount</th><th>Modified Unit Price</th><th>Modified Subtotal</th></tr></thead><tbody><tr><td>Tile Series 2 Buttons Smart Panel 2.1</td><td>$95</td><td><input id="m-discount" type="number" min="0" max="1" step="0.05" value="0.8"></td><td><input id="m-unitPrice" type="number" min="0" value="76"></td><td class="money" id="discountSubtotal">$76</td></tr></tbody></table></div><div class="total-line">Original Order Total: ' + money(order.productTotal, order.currency) + ' · Modified Order Total: <strong class="money" id="discountOrderTotal">' + money(order.amount, order.currency) + "</strong></div>";
+        } else if (action === "modify") {
+          title = mode === "customer" ? "Modify Order" : "变更订单";
+          html = '<div class="table-shell"><table style="min-width:690px"><thead><tr><th>Product Name</th><th>Product Code</th><th>Quantity</th><th>Unit Price</th><th>Delivery Status</th><th>Operation</th></tr></thead><tbody><tr><td>Tile Series 2 Buttons Smart Panel 2.1</td><td>308013713</td><td><input id="m-quantity" type="number" min="1" value="1"></td><td>$95</td><td>Out of stock</td><td><button type="button" class="link-btn">Delete</button></td></tr></tbody></table></div><div style="margin-top:12px"><button type="button" class="btn" id="addProduct">Add More Items</button></div><div class="total-line">Order Total: <strong class="money">' + money(order.amount, order.currency) + "</strong></div>";
+        } else if (action === "cancel") {
+          title = mode === "customer" ? "Cancel Order" : "取消订单";
+          html = '<div class="info-strip" style="background:var(--red-soft);border-color:var(--red);color:#9d2d2d">After cancellation, the order status changes to Closed and cannot continue through the fulfillment process.</div><div class="modal-grid">' + field("Cancellation Reason", "cancelReason", "", { type: "textarea", wide: true, required: true }) + "</div>";
+          submit = mode === "customer" ? "Confirm Cancellation" : "确认取消";
+        } else if (action === "laser") {
+          title = mode === "customer" ? "Link Tile Laser Engraving" : "关联XX镭雕";
+          html = '<div class="modal-grid">' + field("Laser Engraving File Name / File Number", "laserFile", "", { required: true, wide: true }) + field("Engraving Content", "laserContent", "black and blue", { type: "textarea", wide: true }) + "</div>";
+        } else if (action === "voucher") {
+          title = "付款凭证";
+          html = '<div class="info-strip">已付款金额：<strong>' + money(order.paid, order.currency) + '</strong></div><label class="upload"><input type="file" style="width:auto;height:auto;border:0;background:transparent">上传或更新付款凭证</label>' + field("付款备注", "voucherNote", "", { type: "textarea", wide: true });
+        } else if (action === "note") {
+          title = "订单备注";
+          html = '<div class="modal-grid">' + field("订单备注", "orderNote", "", { type: "textarea", wide: true, required: true }) + "</div>";
+        } else if (action === "owner") {
+          title = "变更业务员";
+          html = '<div class="modal-grid">' + field("业务员", "owner", order.owner, { type: "select", items: ["向紫彤", "渠道管理部主管", "精致的土拨鼠", "王雪"] }) + field("变更原因", "ownerNote", "", { type: "textarea", wide: true }) + "</div>";
+        }
+
+        qs("#modalTitle").textContent = title;
+        qs("#modalSubmit").textContent = submit;
+        qs("#modalBody").innerHTML = html;
+        qs("#actionModal").classList.add("show");
+        qs("#backdrop").classList.add("show");
+        closeMenus();
+        bindModalCalculations(order);
+      }
+
+      function bindModalCalculations(order) {
+        ["freight", "certificate", "other", "handling"].forEach(function (name) {
+          var input = qs("#m-" + name);
+          if (input) input.addEventListener("input", function () {
+            var fees = ["freight", "certificate", "other", "handling"].reduce(function (sum, key) {
+              var fieldNode = qs("#m-" + key);
+              return sum + (fieldNode ? Number(fieldNode.value || 0) : 0);
+            }, 0);
+            var total = qs("#feeTotal");
+            if (total) total.textContent = money(order.productTotal + fees, order.currency);
+          });
+        });
+        var discount = qs("#m-discount");
+        var unitPrice = qs("#m-unitPrice");
+        function updateDiscount() {
+          if (!discount || !unitPrice) return;
+          unitPrice.value = (95 * Number(discount.value || 0)).toFixed(2);
+          qs("#discountSubtotal").textContent = "$" + unitPrice.value;
+          qs("#discountOrderTotal").textContent = money(Math.max(0, order.productTotal - 95 + Number(unitPrice.value)), order.currency);
+        }
+        if (discount) discount.addEventListener("input", updateDiscount);
+        if (unitPrice) unitPrice.addEventListener("input", function () {
+          qs("#discountSubtotal").textContent = "$" + Number(unitPrice.value || 0).toFixed(2);
+          qs("#discountOrderTotal").textContent = money(Math.max(0, order.productTotal - 95 + Number(unitPrice.value || 0)), order.currency);
+        });
+        var saveErp = qs("#saveErp");
+        if (saveErp) saveErp.addEventListener("click", function () {
+          var input = qs("#m-itemNo");
+          if (!input.value.trim()) { showToast("请先填写非标品号"); return; }
+          showToast("当前品号已保存并同步 ERP，流程节点未推进");
+        });
+        var addProduct = qs("#addProduct");
+        if (addProduct) addProduct.addEventListener("click", function () { showToast("已打开商品选择入口"); });
+      }
+
+      function closeModal() {
+        qs("#actionModal").classList.remove("show");
+        if (!qs("#orderDrawer").classList.contains("show") && !qs("#sidebar").classList.contains("show")) qs("#backdrop").classList.remove("show");
+      }
+
+      function submitAction(event) {
+        event.preventDefault();
+        var order = getOrder(currentOrderId);
+        if (!order) return;
+        var form = event.currentTarget;
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        if (currentAction === "confirm") {
+          order.status = STATUS.REVIEW;
+          showToast("Requirements confirmed. Order moved to Pending Review.");
+        } else if (currentAction === "fees") {
+          var freight = Number((qs("#m-freight") || {}).value || 0);
+          var certificate = Number((qs("#m-certificate") || {}).value || 0);
+          var other = Number((qs("#m-other") || {}).value || 0);
+          var handling = Number((qs("#m-handling") || {}).value || 0);
+          order.amount = order.productTotal + freight + certificate + other + handling;
+          if (order.status === STATUS.CONFIRM) order.status = STATUS.REVIEW;
+          showToast(mode === "customer" ? "Fees saved." : "费用已保存");
+        } else if (currentAction === "audit") {
+          var result = qs('input[name="auditResult"]:checked').value;
+          order.status = result === "pass" ? (order.hasCustom ? STATUS.PRODUCTION : STATUS.PAYMENT) : STATUS.FAILED;
+          showToast(result === "pass" ? "审核通过，订单流程已推进" : "审核不通过，订单已退回");
+        } else if (currentAction === "itemNo") {
+          order.erp = order.erp || "ERP-" + order.no.replace(/\D/g, "").slice(-8);
+          order.status = STATUS.PAYMENT;
+          showToast("非标品号已全部同步 ERP，订单进入待付款");
+        } else if (currentAction === "pay") {
+          order.paid = Number(qs("#m-payAmount").value || order.amount);
+          order.status = STATUS.PAID;
+          showToast("Payment voucher submitted. Order moved to Paid.");
+        } else if (currentAction === "shipment") {
+          order.logistics = qs("#m-logistics").value;
+          order.tracking = qs("#m-tracking").value.trim();
+          order.status = STATUS.SHIPMENT;
+          showToast("已确认发货，订单进入待发货");
+        } else if (currentAction === "address") {
+          order.receiver = qs("#m-receiver").value;
+          order.phone = qs("#m-phone").value;
+          order.shipping = qs("#m-shipping").value;
+          order.logistics = qs("#m-logistics").value;
+          order.address = qs("#m-address").value;
+          showToast(mode === "customer" ? "Delivery address updated." : "收货地址已更新");
+        } else if (currentAction === "discount") {
+          var factor = Number(qs("#m-discount").value || 1);
+          order.discount = Math.round((1 - factor) * 100) + "%";
+          order.amount = Math.max(0, order.productTotal - 95 + Number(qs("#m-unitPrice").value || 0));
+          showToast(mode === "customer" ? "Discount price updated." : "折扣价格已更新");
+        } else if (currentAction === "modify") {
+          var qty = Number(qs("#m-quantity").value || 1);
+          order.productTotal = 95 * qty + (order.hasCustom ? 70 : 0);
+          order.amount = order.productTotal;
+          showToast(mode === "customer" ? "Order items updated." : "订单商品已变更");
+        } else if (currentAction === "cancel") {
+          order.status = STATUS.CLOSED;
+          showToast(mode === "customer" ? "Order cancelled." : "订单已取消");
+        } else if (currentAction === "laser") {
+          order.laser = "Yes";
+          showToast(mode === "customer" ? "Laser engraving file linked." : "镭雕文件已关联");
+        } else if (currentAction === "voucher") {
+          showToast("付款凭证已更新");
+        } else if (currentAction === "note") {
+          showToast("订单备注已保存");
+        } else if (currentAction === "owner") {
+          order.owner = qs("#m-owner").value;
+          showToast("业务员已变更为 " + order.owner);
+        }
+        closeModal();
+        renderStatusTabs();
+        renderOrders();
+      }
+
+      function duplicateOrder(order) {
+        var copy = Object.assign({}, order);
+        copy.id = Date.now();
+        copy.no = "DD-" + new Date().getFullYear() + "-NEW-" + String(copy.id).slice(-6);
+        copy.date = new Date().toISOString().slice(0, 10);
+        copy.status = STATUS.CONFIRM;
+        copy.paid = 0;
+        copy.erp = "";
+        copy.tracking = "";
+        orders.unshift(copy);
+        activeStatus = "";
+        renderStatusTabs();
+        renderOrders();
+        showToast(mode === "customer" ? "Another order has been created." : "已生成一笔新的待确认订单");
+      }
+
+      function deleteOrder(order) {
+        orders = orders.filter(function (item) { return item.id !== order.id; });
+        renderStatusTabs();
+        renderOrders();
+        showToast("订单数据已删除");
+      }
+
+      function closeMenus() { qsa(".menu.open").forEach(function (menu) { menu.classList.remove("open"); }); }
+      function openSidebar() { qs("#sidebar").classList.add("show"); qs("#backdrop").classList.add("show"); }
+      function closeSidebar() {
+        qs("#sidebar").classList.remove("show");
+        if (!qs("#actionModal").classList.contains("show") && !qs("#orderDrawer").classList.contains("show")) qs("#backdrop").classList.remove("show");
+      }
+
+      qsa(".nav-item[data-view]").forEach(function (button) {
+        button.addEventListener("click", function () { showView(button.dataset.view, button.dataset.mode); });
+      });
+      qsa("[data-view-jump]").forEach(function (button) { button.addEventListener("click", function () { showView(button.dataset.viewJump); }); });
+      qs("#modeSwitch").addEventListener("click", function (event) {
+        var button = event.target.closest("button");
+        if (button) setMode(button.dataset.mode);
+      });
+      qs("#statusTabs").addEventListener("click", function (event) {
+        var button = event.target.closest(".status-tab");
+        if (!button) return;
+        activeStatus = button.dataset.status;
+        qs("#filterStatus").value = "";
+        renderStatusTabs();
+        renderOrders();
+      });
+      qs("#searchOrders").addEventListener("click", renderOrders);
+      qs("#resetFilters").addEventListener("click", function () {
+        ["filterOrder", "filterCustomer", "filterSource", "filterStatus", "filterFrom", "filterTo", "filterProject", "filterErp"].forEach(function (id) { qs("#" + id).value = ""; });
+        activeStatus = "";
+        renderStatusTabs();
+        renderOrders();
+      });
+      qs("#filterStatus").addEventListener("change", function () { activeStatus = ""; renderStatusTabs(); renderOrders(); });
+      qs("#orderRows").addEventListener("click", function (event) {
+        var more = event.target.closest(".more-btn");
+        if (more) {
+          var menu = more.closest(".menu");
+          var open = menu.classList.contains("open");
+          closeMenus();
+          menu.classList.toggle("open", !open);
+          return;
+        }
+        var action = event.target.closest("[data-action]");
+        if (action) openAction(action.dataset.action, action.dataset.id);
+      });
+      document.addEventListener("click", function (event) {
+        if (!event.target.closest(".menu")) closeMenus();
+      });
+
+      qs("#shopSearchBtn").addEventListener("click", renderShop);
+      qs("#shopSearch").addEventListener("keydown", function (event) { if (event.key === "Enter") renderShop(); });
+      qs("#productGrid").addEventListener("click", function (event) {
+        var button = event.target.closest("[data-add-cart]");
+        if (!button) return;
+        var id = Number(button.dataset.addCart);
+        var existing = cart.find(function (line) { return line.id === id; });
+        if (existing) existing.qty += 1; else cart.push({ id: id, qty: 1, selected: false });
+        updateCartSummary();
+        showToast("Product added to cart.");
+      });
+      qs("#cartRows").addEventListener("change", function (event) {
+        var id;
+        var line;
+        if (event.target.classList.contains("cart-check")) {
+          id = Number(event.target.dataset.id);
+          line = cart.find(function (item) { return item.id === id; });
+          if (line) line.selected = event.target.checked;
+          updateCartSummary();
+        }
+        if (event.target.matches("[data-qty]")) {
+          id = Number(event.target.dataset.qty);
+          line = cart.find(function (item) { return item.id === id; });
+          if (line) line.qty = Math.max(1, Number(event.target.value || 1));
+          renderCart();
+        }
+      });
+      qs("#cartRows").addEventListener("click", function (event) {
+        var del = event.target.closest("[data-cart-delete]");
+        var view = event.target.closest("[data-cart-view]");
+        if (del) {
+          cart = cart.filter(function (line) { return line.id !== Number(del.dataset.cartDelete); });
+          renderCart();
+          showToast("Product removed from cart.");
+        }
+        if (view) {
+          var product = getProduct(view.dataset.cartView);
+          showToast(product.name + " · " + product.code);
+        }
+      });
+      qs("#selectAllCart").addEventListener("change", function (event) {
+        cart.forEach(function (line) { line.selected = event.target.checked; });
+        renderCart();
+      });
+      qs("#massDelete").addEventListener("click", function () {
+        cart = cart.filter(function (line) { return !line.selected; });
+        qs("#selectAllCart").checked = false;
+        renderCart();
+        showToast("Selected products deleted.");
+      });
+      function submitSelectedCart() {
+        var selected = cart.filter(function (line) { return line.selected; });
+        if (!selected.length) return;
+        var total = selected.reduce(function (sum, line) {
+          var product = getProduct(line.id);
+          return sum + product.price * line.qty;
+        }, 0);
+        orders.unshift({
+          id: Date.now(), no: "DD-2026-NEW-" + String(Date.now()).slice(-5), customer: "Current International Customer", project: "Preferred Shop Order", projectNo: "", laser: selected.some(function (line) { return getProduct(line.id).custom; }) ? "Yes" : "No", date: new Date().toISOString().slice(0, 10), productTotal: total, discount: "No discount", amount: total, paid: 0, currency: "USD", status: STATUS.CONFIRM, erp: "", hdl: "", contract: "", tax: "Tax included", owner: "向紫彤", source: "Preferred Shop", address: "", receiver: "", phone: "", shipping: "Freight Collect", logistics: "UPS", tracking: "", hasCustom: selected.some(function (line) { return getProduct(line.id).custom; })
+        });
+        cart = cart.filter(function (line) { return !line.selected; });
+        activeStatus = STATUS.CONFIRM;
+        showView("orders", "customer");
+        activeStatus = STATUS.CONFIRM;
+        renderStatusTabs();
+        renderOrders();
+        showToast("Order submitted and moved to Pending Confirmation.");
+      }
+      qs("#massSubmit").addEventListener("click", submitSelectedCart);
+      qs("#submitCart").addEventListener("click", submitSelectedCart);
+
+      qsa("[data-close-modal]").forEach(function (button) { button.addEventListener("click", closeModal); });
+      qsa("[data-close-drawer]").forEach(function (button) { button.addEventListener("click", closeDrawer); });
+      qsa(".detail-tab").forEach(function (button) { button.addEventListener("click", function () { activateDetailPane(button.dataset.pane); }); });
+      qs("#actionForm").addEventListener("submit", submitAction);
+      qs("#mobileMenu").addEventListener("click", openSidebar);
+      qs("#backdrop").addEventListener("click", function () { closeModal(); closeDrawer(); closeSidebar(); closeMenus(); });
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") { closeModal(); closeDrawer(); closeSidebar(); closeMenus(); }
+      });
+
+      renderStatusTabs();
+      renderStatusSelect();
+      renderOrders();
+      renderShop();
+      renderCart();
+    }());
+  </script>
+</body>
+</html>
