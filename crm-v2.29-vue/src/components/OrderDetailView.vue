@@ -56,11 +56,15 @@ const basicRows = computed(() => {
         ["发货备注", o.dispatch || "-"],
       ]
     : [
-        ["Order Number", o.no], ["Customer Name", o.customer], ["Project Name", o.project], ["Project Number", o.projectNo || "-"], ["Business Type", o.business || "-"], ["P.O. No.", o.po || "-"],
-        ["Order Time", o.date], ["Order Total", money(o.amount, o.currency)], ["Total Amount Payable", `${payable} (Order Total: ${payable}, Freight: $0, Pay Handling Fee: $0)`], ["Payment Method", o.currency],
-        ["Order Source", o.source || "CRM"], ["Contract Number", o.contract || "-"], ["HDL Ref No", o.hdl || "-"], ["Freight collect account", o.shipping === "Freight Collect" ? "3435555" : "-"],
-        ["Whether Tax Included", o.tax || "-"], ["ERP Order No.", o.erp || "-"], ["Order Status", o.status], ["Proof of Payment", "-"],
-        ["Dispatch Requirement", o.dispatch || "-"], ["Order Remarks", o.note || "-"], ["Payment Remarks", "-"], ["Delivery Remarks", o.dispatch || "-"],
+        ["Order Number", o.no], ["Customer Name", o.customer],
+        ["Project Name", o.project], ["Project Number", o.projectNo || "-"],
+        ["Order Time", o.date], ["Order Total", money(o.amount, o.currency)],
+        ["Total Amount Payable", `${payable} (Order Total: ${payable}, Freight: $0, Pay Handling Fee: $0)`], ["Payment Method", o.currency],
+        ["Contract Number", o.contract || "-"], ["HDL Ref No", o.hdl || "-"],
+        ["ERP Order No.", o.erp || "-"], ["Whether Tax Included", o.tax || "-"],
+        ["Order Status", o.status], ["Proof of Payment", "-"],
+        ["Order Remarks", o.note || "-"], ["Payment Remarks", "-"],
+        ["Delivery Remarks", o.dispatch || "-"],
       ];
 });
 
