@@ -45,14 +45,14 @@ const basicRows = computed(() => {
   const payable = money(o.amount || 0, o.currency || "USD");
   return props.admin
     ? [
-        ["订单编号", o.no], ["客户名称", o.customer], ["项目名称", o.project], ["项目编号", o.projectNo || "-"],
+        ["订单编号", o.no], ["客户名称", o.customer], ["项目名称", o.project], ["项目编号", o.projectNo || "-"], ["业务类型", o.business || "-"], ["P.O. No.", o.po || "-"],
         ["下单时间", o.date], ["订单金额", money(o.amount, o.currency)], ["应付总金额", `${payable}（订单金额：${payable}，运费：$0，手续费：$0）`], ["支付方式", o.currency],
         ["订单来源", o.source || "CRM"], ["合同编号", o.contract || "-"], ["HDL Ref No", o.hdl || "-"], ["到付账号", o.shipping === "Freight Collect" ? "3435555" : "-"],
         ["是否含税", o.tax || "-"], ["ERP订单号", o.erp || "-"], ["订单状态", statusZh[o.status] || o.status], ["付款凭证", "-"],
         ["发货要求", o.dispatch || "-"], ["订单备注", o.note || "-"], ["付款备注", "-"], ["发货备注", o.dispatch || "-"],
       ]
     : [
-        ["Order Number", o.no], ["Customer Name", o.customer], ["Project Name", o.project], ["Project Number", o.projectNo || "-"],
+        ["Order Number", o.no], ["Customer Name", o.customer], ["Project Name", o.project], ["Project Number", o.projectNo || "-"], ["Business Type", o.business || "-"], ["P.O. No.", o.po || "-"],
         ["Order Time", o.date], ["Order Total", money(o.amount, o.currency)], ["Total Amount Payable", `${payable} (Order Total: ${payable}, Freight: $0, Pay Handling Fee: $0)`], ["Payment Method", o.currency],
         ["Order Source", o.source || "CRM"], ["Contract Number", o.contract || "-"], ["HDL Ref No", o.hdl || "-"], ["Freight collect account", o.shipping === "Freight Collect" ? "3435555" : "-"],
         ["Whether Tax Included", o.tax || "-"], ["ERP Order No.", o.erp || "-"], ["Order Status", o.status], ["Proof of Payment", "-"],

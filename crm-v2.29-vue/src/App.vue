@@ -124,7 +124,7 @@ const breadcrumb = computed(() => {
     "admin-orders": ["Order Center", "Standard Orders"],
     "admin-detail": ["Order Center", "Standard Orders", "Order Details"],
     "confirm-requirements": ["Order Center", "Customer Orders", "Confirm Requirements"],
-    "modify-order": ["Order Center", "Customer Orders", "Modify Order"],
+    "modify-order": [isAdmin.value ? "订单中心" : "Order Center", isAdmin.value ? "标品订单" : "Customer Orders", isAdmin.value ? "变更订单" : "Modify Order"],
     "audit-order": ["订单中心", "标品订单", "订单审核"],
     "item-number": ["订单中心", "标品订单", "录入品号"],
     "discount-price": [isAdmin.value ? "订单中心" : "Order Center", isAdmin.value ? "标品订单" : "Customer Orders", isAdmin.value ? "设置折扣价格" : "Set Discount Price"],
@@ -280,11 +280,12 @@ function navigate(nextRoute, orderId) {
 }
 
 function navigateBreadcrumb(index) {
-  if (breadcrumb.value.some((part) => part.includes("Order"))) {
+  const orderRoutes = ["admin-orders", "customer-orders", "admin-detail", "customer-detail", "confirm-requirements", "modify-order", "audit-order", "item-number", "discount-price"];
+  if (orderRoutes.includes(route.value)) {
     navigate(isAdmin.value ? "admin-orders" : "customer-orders");
-  } else if (index <= 1) {
-    navigate("shop");
+    return;
   }
+  if (commerceRoutes.includes(route.value) && index <= 1) navigate("shop");
 }
 
 function isNavActive(target) {
@@ -311,12 +312,12 @@ function performAction(action, orderId) {
   if (action === "discount") { editorProductTab.value = "standard"; return navigate("discount-price", orderId); }
   if (action === "address") return openModal(isAdmin.value ? "address-admin" : "address-customer", orderId);
   if (action === "fees") return openModal(isAdmin.value ? "fees-admin" : "fees-customer", orderId);
-  if (action === "contract") { showToast(isAdmin.value ? "合同已下载。" : "Contract downloaded."); return; }
+  if (action === "contract") return downloadContract(orderId);
   if (action === "owner" || action === "note" || action === "voucher" || action === "shipment" || action === "delete") return openModal(action, orderId);
   if (action === "pay") return openModal("pay", orderId);
   if (action === "laser") return openModal(isAdmin.value ? "laser-admin" : "laser-customer", orderId);
   if (action === "cancel") return openModal(isAdmin.value ? "cancel-admin" : "cancel-customer", orderId);
-  if (action === "another") return openModal("another-customer", orderId);
+  if (action === "another") return openModal(isAdmin.value ? "another-admin" : "another-customer", orderId);
   openModal(action, orderId);
 }
 
@@ -359,12 +360,16 @@ function openModal(kind, orderId = currentOrderId.value) {
     paymentRemarks: "",
     shipping: order.shipping || "HDL Prepaid Freight",
     logistics: order.logistics || "DHL",
-    laserTile: order.laser === "Yes",
-    laserXelent: false,
+    freightAccount: order.shipping === "Freight Collect" ? "3435555" : "",
+    linkMode: "platform",
+    platformFile: "",
+    laserFile: "",
     cancelReason: "",
     shipmentResult: "Confirm Shipment",
     shipmentReason: "",
     shipmentNote: "",
+    contractAudit: "",
+    auditDescription: "",
     owner: "",
     freight: 0,
     certificate: 0,
@@ -411,8 +416,8 @@ function submitModal() {
     order.dispatch = modal.data.dispatch;
     showToast("Address updated.");
   } else if (["laser-customer", "laser-admin"].includes(modal.kind)) {
-    order.laser = modal.data.laserTile || modal.data.laserXelent ? "Yes" : "No";
-    showToast("Laser engraving settings updated.");
+    order.laser = "Yes";
+    showToast(isAdmin.value ? "镭雕文件已关联。" : "Laser engraving file linked.");
   } else if (["cancel-customer", "cancel-admin"].includes(modal.kind)) {
     order.status = STATUS.CLOSED;
     showToast("Order cancelled.");
@@ -426,10 +431,10 @@ function submitModal() {
   } else if (modal.kind === "shipment") {
     order.status = modal.data.shipmentResult === "Return to Pending Payment" ? STATUS.PAYMENT : STATUS.SHIPMENT;
     showToast(modal.data.shipmentResult === "Return to Pending Payment" ? "订单已退回待付款。" : "已确认发货。");
-  } else if (modal.kind === "another-customer") {
+  } else if (["another-customer", "another-admin"].includes(modal.kind)) {
     const id = Date.now();
     orders.value.unshift({ ...order, id, no: `DD-2026-NEW-${String(id).slice(-6)}`, status: STATUS.CONFIRM, paid: 0 });
-    showToast("Another order created.");
+    showToast(isAdmin.value ? "已按原订单创建新订单。" : "Another order created.");
   }
   closeModal();
 }
@@ -460,6 +465,24 @@ function productDetailRows() {
   return [{ ...standardProduct, orderQty: 1, orderLaser: currentOrder.value?.laser || "No" }];
 }
 
+function downloadContract(orderId) {
+  const order = orders.value.find((item) => item.id === orderId) || currentOrder.value || {};
+  const content = [
+    isAdmin.value ? "HDL CRM 标品订单合同" : "HDL CRM Customer Order Contract",
+    `Order Number: ${order.no || "-"}`,
+    `Customer Name: ${order.customer || "-"}`,
+    `Contract Number: ${order.contract || "-"}`,
+    `Amount: ${money(order.amount || 0, order.currency || "USD")}`,
+  ].join("\n");
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = window.document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${order.contract || order.no || "order-contract"}.txt`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  showToast(isAdmin.value ? "合同已下载。" : "Contract downloaded.");
+}
 function openTilePreview(document) {
   tilePreviewDocument.value = document;
   tilePreviewOpen.value = true;
@@ -572,7 +595,18 @@ function showToast(message) {
     <div class="backdrop" :class="{ show: sidebarOpen || modal.show }" @click="sidebarOpen ? sidebarOpen = false : closeModal()"></div>
     <OrderActionModal v-if="modal.show" :modal="modal" :order="modalOrder" @close="closeModal" @submit="submitModal" @edit-address="openAddressDetailModal" />
     <div v-if="addressDetailModal.show" class="address-detail-backdrop" @click.self="closeAddressDetailModal"></div>
-    <section v-if="addressDetailModal.show" class="modal show address-modal address-detail-modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>Address Edit</h2><button class="btn icon" type="button" aria-label="Close" @click="closeAddressDetailModal"><X :size="18" /></button></div><form @submit.prevent="submitAddressDetailModal"><div class="modal-body address-detail-form"><label><span><i>*</i>Receiver</span><input v-model="addressDetailModal.data.receiver" required placeholder="Please enter the receiver" /></label><label><span><i>*</i>Contact Number</span><input v-model="addressDetailModal.data.phone" required placeholder="Please enter the contact number" /></label><label><span><i>*</i>Delivery Address</span><select v-model="addressDetailModal.data.country" required><option :value="addressDetailModal.data.country">{{ addressDetailModal.data.country }}</option><option>Afghanistan / Herat</option><option>Georgia / Tbilisi</option><option>Hong Kong / Kowloon</option></select></label><label><span><i>*</i>Detailed Address</span><input v-model="addressDetailModal.data.address" required placeholder="Please enter the detailed address" /></label></div><div class="modal-foot"><button class="btn" type="button" @click="closeAddressDetailModal">Cancel</button><button class="btn primary" type="submit">Submit</button></div></form></section>
+    <section v-if="addressDetailModal.show" class="modal show address-modal address-detail-modal" role="dialog" aria-modal="true">
+      <div class="modal-head"><h2>{{ isAdmin ? "修改地址" : "Address Edit" }}</h2><button class="btn icon" type="button" :aria-label="isAdmin ? '关闭' : 'Close'" @click="closeAddressDetailModal"><X :size="18" /></button></div>
+      <form @submit.prevent="submitAddressDetailModal">
+        <div class="modal-body address-detail-form">
+          <label><span><i>*</i>{{ isAdmin ? "收货人" : "Receiver" }}</span><input v-model="addressDetailModal.data.receiver" required :placeholder="isAdmin ? '请输入收货人' : 'Please enter the receiver'" /></label>
+          <label><span><i>*</i>{{ isAdmin ? "联系电话" : "Contact Number" }}</span><input v-model="addressDetailModal.data.phone" required :placeholder="isAdmin ? '请输入联系电话' : 'Please enter the contact number'" /></label>
+          <label><span><i>*</i>{{ isAdmin ? "收货地址" : "Country/City" }}</span><select v-model="addressDetailModal.data.country" required><option :value="addressDetailModal.data.country">{{ addressDetailModal.data.country }}</option><option>Afghanistan / Herat</option><option>Georgia / Tbilisi</option><option>Hong Kong / Kowloon</option></select></label>
+          <label><span><i>*</i>{{ isAdmin ? "详细地址" : "Address" }}</span><input v-model="addressDetailModal.data.address" required :placeholder="isAdmin ? '请输入详细地址' : 'Please enter the detailed address'" /></label>
+        </div>
+        <div class="modal-foot"><button class="btn" type="button" @click="closeAddressDetailModal">{{ isAdmin ? "取消" : "Cancel" }}</button><button class="btn primary" type="submit">{{ isAdmin ? "提交" : "Submit" }}</button></div>
+      </form>
+    </section>
     <div v-if="tilePreviewOpen" class="tile-preview-backdrop" @click.self="closeTilePreview"></div>
     <section v-if="tilePreviewOpen" class="modal show tile-preview-modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>Document Preview</h2><button class="btn icon" type="button" aria-label="Close" @click="closeTilePreview"><X :size="18" /></button></div><div class="modal-body"><div class="tile-preview-sheet"><strong>{{ tilePreviewDocument?.name }}</strong><span>{{ tilePreviewDocument?.type }}</span><dl><dt>Order Number</dt><dd>{{ currentOrder.no }}</dd><dt>Uploader</dt><dd>{{ currentOrder.owner }}</dd><dt>Upload Time</dt><dd>2026/07/16</dd></dl></div></div><div class="modal-foot"><button class="btn" type="button" @click="closeTilePreview">Close</button><button class="btn primary" type="button" @click="downloadTileDocument(tilePreviewDocument)">Download</button></div></section>    <div class="toast-stack"><div v-for="toast in toasts" :key="toast.id" class="toast">{{ toast.message }}</div></div>
   </div>
@@ -1104,8 +1138,3 @@ select > option:not([data-placeholder]) { color: #24272d; }
   .requirements-actions { width: 100%; }
   .requirements-actions .btn { flex: 1; min-width: 0; }
 }</style>
-
-
-
-
-
