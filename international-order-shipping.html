@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HDL CRM · Submit Order · Shipping Details</title>
+  <style>
+    :root{--purple:#8b00bd;--purple-dark:#72009d;--purple-pale:#faf4ff;--line:#e5e7ed;--ink:#262b38;--muted:#72798a;--bg:#f6f7fb;--red:#e34b4b}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Arial,"Microsoft YaHei","PingFang SC",sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--purple);outline-offset:2px}[hidden]{display:none!important}
+    .topbar{position:fixed;z-index:10;top:0;left:0;right:0;height:60px;background:#fff;border-bottom:1px solid #e8e9ef;display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 1px 3px #2530410a}.logo{display:flex;align-items:center;gap:10px;color:var(--purple);font-size:17px;font-weight:700;letter-spacing:.2px}.logo-mark{background:var(--purple);color:white;font:bold 27px/1 Arial;padding:3px 6px 2px;letter-spacing:-2px}.top-actions{display:flex;align-items:center;gap:24px;color:#313543}.top-actions span{white-space:nowrap}.avatar{width:27px;height:27px;border-radius:8px;background:conic-gradient(#f4ad2b 0 25%,#7e50e4 25% 50%,#62bbec 50% 75%,#e994ba 75%);display:inline-block;vertical-align:middle;margin-right:7px}
+    .sidebar{position:fixed;z-index:8;top:60px;bottom:0;left:0;width:184px;overflow:auto;background:#fff;border-right:1px solid #e7e9f0;padding:14px 0 26px}.nav-item,.nav-sub{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 24px;color:#333a48;text-decoration:none}.nav-icon{width:15px;text-align:center;color:#657080}.nav-chevron{margin-left:auto;color:#687283}.nav-item.current-group{color:var(--purple)}.nav-item.current-group .nav-icon{color:var(--purple)}.nav-sub{padding-left:50px;min-height:45px;font-size:13px}.nav-sub.active{color:var(--purple);background:var(--purple-pale);border-right:2px solid var(--purple);font-weight:600}.nav-item:hover,.nav-sub:hover{background:#faf8fc}
+    .main{margin-left:184px;padding:72px 20px 110px;min-height:100vh}.breadcrumb{height:27px;color:#80879a;font-size:13px}.breadcrumb b{color:#333a48;font-weight:500}.crumb-sep{margin:0 12px;color:#b3b7c2}.section{background:#fff;border:1px solid #eceef3;box-shadow:0 2px 7px #1b26400a;margin:0 0 16px;padding:20px 20px 22px}.section-heading{font-size:14px;font-weight:600;color:#1d2330;margin:0 0 19px;display:flex;align-items:center;gap:20px}.section-heading .note{color:#e33c3c;font-weight:400}.field-grid{display:grid;grid-template-columns:238px minmax(0,1fr);gap:16px 12px;align-items:center;max-width:1400px}.field-label{justify-self:end;text-align:right;color:#515b6d}.required{color:var(--red);margin-right:4px}.text-control,.select-control,.textarea-control{border:1px solid #d8dbe3;border-radius:4px;background:#fff;color:#303746;min-height:34px;padding:6px 11px}.text-control:focus,.select-control:focus,.textarea-control:focus{border-color:var(--purple);box-shadow:0 0 0 3px #8b00bd18;outline:none}.text-control::placeholder,.textarea-control::placeholder{color:#a6adbc}.short{width:250px;max-width:100%}.medium{width:380px;max-width:100%}.full{width:100%}.section.customer .field-grid{gap:15px 12px}.address-line{display:flex;gap:16px;align-items:center}.address-line .select-control{flex:1}.link-button{border:0;background:none;color:var(--purple);white-space:nowrap;padding:7px 5px}.link-button:hover{text-decoration:underline}.outline-button{border:1px solid var(--purple);color:var(--purple);background:#fff;border-radius:4px;padding:5px 21px}.outline-button:hover{background:var(--purple-pale)}
+    .shipping-card{margin:10px 0 0;padding:0;border:0;background:none;border-radius:0}.shipping-card .field-grid{grid-template-columns:238px minmax(0,1fr);gap:13px 12px;max-width:none}.shipping-card .field-label{font-weight:400;color:#515b6d}.choices{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;min-height:34px}.choice{display:inline-flex;align-items:center;gap:7px;min-height:28px;padding:0;border:0;border-radius:0;background:none;color:#515b6d;cursor:pointer;white-space:nowrap}.choice:hover{color:var(--purple)}.choice:has(input:checked){border:0;background:none;box-shadow:none;color:#515b6d}.choice input{margin:0;accent-color:var(--purple);width:15px;height:15px;cursor:pointer}.choice small{font-size:12px;color:#7d8290}.choice:has(input:checked) small{color:#7d8290}.conditional-divider{display:none}.conditional-label{align-self:center;padding-top:0}.help{color:#8a90a0;font-size:12px;margin:6px 0 0}.inline-input{margin-top:10px}.inline-input .text-control{width:380px;max-width:100%;min-height:36px}.textarea-control{width:100%;min-height:66px;resize:vertical}.field-error{color:#d23d45;font-size:12px;margin-top:5px;display:none}.field-error.visible{display:block}.is-invalid{border-color:#d23d45!important}.subtle-note{color:#8790a0;font-size:12px;margin-left:8px;font-weight:400}
+    .products .tabs{height:38px;border-bottom:1px solid var(--line);margin-top:6px}.tab{border:0;background:none;border-bottom:2px solid var(--purple);color:var(--purple);padding:7px 14px 10px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:left;font-size:13px}th{background:#fafbfe;color:#656e7e;font-weight:500}th,td{padding:13px 12px;border-bottom:1px solid #edf0f4}td strong{font-weight:500}.qty{width:60px;min-height:32px;border:1px solid #d8dbe3;border-radius:4px;padding:4px 6px}.money{text-align:right}.product-foot{display:flex;justify-content:flex-end;gap:24px;padding-top:14px;color:#626c7d}.product-foot strong{color:#e14d4d}.bottom-bar{position:fixed;z-index:9;bottom:0;left:184px;right:0;background:#fff;box-shadow:0 -2px 12px #17223b14;border-top:1px solid #e8eaf1;min-height:62px;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:10px 20px}.bottom-summary{margin-right:8px;color:#3d4451}.bottom-summary strong{color:#df3d3d;font-weight:500}.button{border:1px solid #d6d9e2;border-radius:4px;background:#fff;padding:7px 18px;color:#4f5562}.button:hover{background:#f7f8fb}.button.primary{background:var(--purple);color:#fff;border-color:var(--purple);font-weight:600}.button.primary:hover{background:var(--purple-dark)}
+    .modal-scrim{position:fixed;z-index:30;inset:0;background:#17213c7d;display:grid;place-items:center;padding:20px}.modal{width:min(550px,100%);background:#fff;border-radius:8px;box-shadow:0 20px 70px #111a3b36;overflow:hidden}.modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:17px}.close{border:0;background:none;font-size:25px;color:#818898;line-height:1}.modal-body{padding:20px 22px;max-height:70vh;overflow:auto}.modal-body .text-control{width:100%;margin-top:7px}.modal-body label{display:block;margin-bottom:15px;color:#4a5260}.modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--line)}.review-row{display:grid;grid-template-columns:155px 1fr;gap:16px;padding:9px 0;border-bottom:1px solid #eff0f4}.review-row span:first-child{color:#858c99}.review-row span:last-child{overflow-wrap:anywhere}.review-title{margin:0 0 8px;font-size:14px}.toast{position:fixed;z-index:40;bottom:78px;right:22px;padding:11px 17px;border-radius:5px;background:#2d3748;color:white;box-shadow:0 7px 25px #1c243c30}
+    @media(max-width:1000px){.sidebar{width:62px}.nav-item{justify-content:center;padding:0}.nav-item .nav-text,.nav-chevron,.nav-sub{display:none}.main{margin-left:62px}.bottom-bar{left:62px}.top-actions{gap:12px}.top-actions .hide-compact{display:none}}
+    @media(max-width:700px){.topbar{height:54px;padding:0 12px}.sidebar{display:none}.main{margin-left:0;padding:66px 10px 125px}.section{padding:16px 12px}.field-grid,.shipping-card .field-grid{grid-template-columns:1fr;gap:7px}.field-label{justify-self:start;text-align:left}.shipping-card{padding:0}.choices{gap:8px 18px}.choice{white-space:normal}.address-line{align-items:stretch;flex-direction:column;gap:5px}.bottom-bar{left:0;flex-wrap:wrap;justify-content:flex-end}.bottom-summary{width:100%;text-align:right;font-size:12px}.top-actions span:not(:last-child){display:none}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="logo"><span class="logo-mark">HDL</span> CRM</div><div class="top-actions"><span class="hide-compact">♟ &nbsp; 消息中心</span><span class="hide-compact">⚙ &nbsp; 系统设置</span><span><i class="avatar"></i> Hi~向紫彤 ⌄</span></div></header>
+  <aside class="sidebar" aria-label="主导航">
+    <a class="nav-item" href="#customer"><span class="nav-icon">♧</span><span class="nav-text">客户中心</span><span class="nav-chevron">⌄</span></a>
+    <a class="nav-item" href="#customer"><span class="nav-icon">♙</span><span class="nav-text">渠道商管理</span><span class="nav-chevron">⌄</span></a>
+    <a class="nav-item" href="#customer"><span class="nav-icon">▤</span><span class="nav-text">方案中心</span><span class="nav-chevron">⌄</span></a>
+    <a class="nav-item" href="#customer"><span class="nav-icon">▧</span><span class="nav-text">资料中心</span><span class="nav-chevron">⌄</span></a>
+    <a class="nav-item" href="#customer"><span class="nav-icon">♧</span><span class="nav-text">下载中心</span><span class="nav-chevron">⌄</span></a>
+    <a class="nav-item" href="#customer"><span class="nav-icon">⚙</span><span class="nav-text">特惠中心</span><span class="nav-chevron">⌄</span></a>
+    <a class="nav-item current-group" href="#products"><span class="nav-icon">☆</span><span class="nav-text">产品中心</span><span class="nav-chevron">⌃</span></a>
+    <a class="nav-sub" href="#products">产品管理</a><a class="nav-sub" href="#products">我的产品管理</a><a class="nav-sub" href="#products">产品类别管理</a><a class="nav-sub" href="#products">产品定价设置</a><a class="nav-sub" href="#products">生态对接品管理</a><a class="nav-sub" href="#products">镭雕定制</a><a class="nav-sub" href="#products">优选商城</a><a class="nav-sub active" href="#products">购物车</a><a class="nav-sub" href="#products">国际产品清单</a><a class="nav-sub" href="#products">产品文档管理</a>
+  </aside>
+  <main class="main">
+    <div class="breadcrumb">产品中心 <span class="crumb-sep">/</span> 优选商城 <span class="crumb-sep">/</span> 产品-购物车 <span class="crumb-sep">/</span> <b>提交订单</b></div>
+    <form id="orderForm" novalidate>
+      <section class="section customer" id="customer"><h2 class="section-heading">Customer Information <span class="note">Note: If the project has not been reported, you can directly enter the project name</span></h2>
+        <div class="field-grid">
+          <label class="field-label" for="channel"><span class="required">*</span>Channel Name</label><select class="select-control short" id="channel"><option>国际测试渠道商</option><option>River East Preferred</option></select>
+          <label class="field-label" for="project">Project Name</label><select class="select-control short" id="project"><option value="">Please select</option><option>International Test</option><option>Smart Home</option><option>Lighting</option></select>
+          <label class="field-label" for="projectCustom">Project Name</label><input class="text-control short" id="projectCustom" placeholder="Please enter a project name">
+          <label class="field-label" for="business"><span class="required">*</span>Business Type</label><select class="select-control short" id="business"><option>Lighting</option><option>Home Furnishing</option><option>Whole-house Customization</option></select>
+        </div>
+      </section>
+      <section class="section" id="delivery"><h2 class="section-heading" style="justify-content:space-between">Delivery Address <button class="outline-button" type="button" id="addAddress">Add</button></h2>
+        <div class="field-grid"><label class="field-label" for="address"><span class="required">*</span>Delivery Address</label><div class="address-line"><select class="select-control" id="address"><option value="BahrainAl-GharbiyahAA　 AA　10086">BahrainAl-GharbiyahAA　 AA　10086</option><option value="18 Orchard Road, Singapore 238823">18 Orchard Road, Singapore 238823</option></select><button class="link-button" type="button" id="changeAddress">Change Address</button></div></div>
+        <div class="shipping-card" aria-label="Shipping details"><div class="field-grid">
+          <div class="field-label"><span class="required">*</span>Shipping Method <span class="subtle-note">运输方式</span></div>
+          <div class="choices" role="radiogroup" aria-label="Shipping Method 运输方式">
+            <label class="choice"><input type="radio" name="shippingMethod" value="pickup">Customer Pickup <small>客户自提</small></label>
+            <label class="choice"><input type="radio" name="shippingMethod" value="express" checked>Express Delivery <small>快递配送</small></label>
+          </div>
+          <hr class="conditional-divider" id="expressDivider">
+          <div class="field-label conditional-label express-only"><span class="required">*</span>Freight Payment <span class="subtle-note">运费结算方式</span></div>
+          <div class="express-only"><div class="choices" role="radiogroup" aria-label="Freight Payment 运费结算方式">
+            <label class="choice"><input type="radio" name="freightPayment" value="prepaid" checked>Freight Prepaid (Arranged by HDL) <small>运费预付</small></label>
+            <label class="choice"><input type="radio" name="freightPayment" value="collect">Freight Collect <small>运费到付</small></label>
+          </div></div>
+          <div class="field-label conditional-label express-only"><span class="required">*</span>Courier Provider <span class="subtle-note">承运快递</span></div>
+          <div class="express-only"><div class="choices" role="radiogroup" aria-label="Courier Provider 承运快递">
+            <label class="choice"><input type="radio" name="courier" value="DHL" checked>DHL</label><label class="choice"><input type="radio" name="courier" value="FedEx">FedEx</label><label class="choice"><input type="radio" name="courier" value="Aramex">Aramex</label><label class="choice"><input type="radio" name="courier" value="UPS">UPS</label><label class="choice"><input type="radio" name="courier" value="Other">Other <small>其他</small></label>
+          </div><div class="inline-input" id="otherCourierWrap" hidden><input class="text-control" id="otherCourier" maxlength="80" placeholder="Please enter your designated courier" aria-label="Please enter your designated courier"><div class="field-error" id="otherCourierError">Please enter your designated courier / 请填写指定快递</div></div></div>
+          <label class="field-label express-only" id="collectLabel" for="collectAccount" hidden><span class="required">*</span>Collect Account Number <span class="subtle-note">到付账号</span></label>
+          <div class="express-only" id="collectWrap" hidden><input class="text-control medium" id="collectAccount" maxlength="60" autocomplete="off" placeholder="Please enter your freight collect account"><div class="field-error" id="collectError">Please enter a collect account number / 请填写到付账号</div></div>
+          <hr class="conditional-divider" id="preferenceDivider">
+          <div class="field-label conditional-label express-only">Shipping Preference <span class="subtle-note">发货要求</span></div>
+          <div class="choices express-only" role="radiogroup" aria-label="Shipping Preference 发货要求">
+            <label class="choice"><input type="radio" name="shippingPreference" value="Ship Immediately" checked>Ship Immediately <small>立即发货</small></label>
+            <label class="choice"><input type="radio" name="shippingPreference" value="Ship In-Stock Items First">Ship In-Stock Items First <small>有货先发</small></label>
+            <label class="choice"><input type="radio" name="shippingPreference" value="Ship All Items Together">Ship All Items Together <small>齐货后发</small></label>
+            <label class="choice"><input type="radio" name="shippingPreference" value="To Be Discussed">To Be Discussed <small>待沟通</small></label>
+          </div>
+          <label class="field-label conditional-label" for="remarks">Order Remarks <span class="subtle-note">订单备注</span></label>
+          <div><textarea class="textarea-control" id="remarks" maxlength="500" placeholder="Optional · Packaging requirements, delivery instructions, or other special requests / 可填写包装要求、配送说明等特殊需求"></textarea><div class="help">Optional · 非必填</div></div>
+        </div></div>
+      </section>
+      <section class="section products" id="products"><h2 class="section-heading">Product Information <span class="note">(Note: Prices for Customized products are to be determined and will be finalized after HDL’s review)</span></h2><div class="tabs"><button class="tab" type="button">Standard Products</button></div><div class="table-wrap"><table><thead><tr><th>Product Name</th><th>Product Specification</th><th>ERP Code</th><th>Engraving</th><th>Quantity</th><th class="money">Unit Price</th><th class="money">Amount</th></tr></thead><tbody><tr><td><strong>HDL Smart Panel</strong></td><td>White · 86 Type</td><td>HDL-MP01</td><td>No</td><td><input class="qty" type="number" min="1" max="999" value="1" data-price="45" aria-label="HDL Smart Panel quantity"></td><td class="money">$45.00</td><td class="money row-amount">$45.00</td></tr><tr><td><strong>LED Downlight</strong></td><td>9W · 3000K</td><td>HDL-DL09</td><td>No</td><td><input class="qty" type="number" min="1" max="999" value="2" data-price="32" aria-label="LED Downlight quantity"></td><td class="money">$32.00</td><td class="money row-amount">$64.00</td></tr><tr><td><strong>Lighting Controller</strong></td><td>4 Channel</td><td>HDL-LC04</td><td>No</td><td><input class="qty" type="number" min="1" max="999" value="1" data-price="26" aria-label="Lighting Controller quantity"></td><td class="money">$26.00</td><td class="money row-amount">$26.00</td></tr></tbody></table></div><div class="product-foot"><span>Standard Products: <b>3</b></span><span>Customization: <b>0</b></span><span>Total: <strong id="productTotal">$135.00</strong></span></div></section>
+    </form>
+  </main>
+  <footer class="bottom-bar"><span class="bottom-summary">Standard Products: <b>3</b> &nbsp; Customization: <b>0</b> &nbsp; Total: <strong id="footerTotal">$135.00</strong> <span style="color:#e14d4d">(Customized products are not included.)</span></span><button class="button" type="button" id="backButton">Back</button><button class="button primary" type="submit" form="orderForm">Submit</button></footer>
+  <div class="modal-scrim" id="addressModal" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="addressTitle"><div class="modal-head"><span id="addressTitle">Add Delivery Address</span><button class="close" type="button" data-close="addressModal" aria-label="Close">×</button></div><div class="modal-body"><label>Delivery Address <span class="required">*</span><input class="text-control" id="addressInput" maxlength="160" placeholder="Enter a delivery address"></label></div><div class="modal-actions"><button class="button" type="button" data-close="addressModal">Cancel</button><button class="button primary" type="button" id="saveAddress">Save</button></div></div></div>
+  <div class="modal-scrim" id="reviewModal" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle"><div class="modal-head"><span id="reviewTitle">Order Details Preview · 订单信息预览</span><button class="close" type="button" data-close="reviewModal" aria-label="Close">×</button></div><div class="modal-body"><h3 class="review-title">Shipping details</h3><div id="reviewRows"></div><p class="help" style="margin-top:16px">This is an interactive prototype. No order will be sent to a server. / 此为交互原型，不会实际提交订单。</p></div><div class="modal-actions"><button class="button primary" type="button" data-close="reviewModal">Close</button></div></div></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+    const selected = (name) => $(`input[name="${name}"]:checked`)?.value || '';
+    const show = (el, visible) => { el.hidden = !visible; };
+    function clearError(input, error){input.classList.remove('is-invalid');error.classList.remove('visible')}
+    function updateShipping(){
+      const express = selected('shippingMethod') === 'express';
+      $$('.express-only').forEach(el => show(el, express && !el.classList.contains('collect-only')));
+      $$('input[name="shippingPreference"]').forEach(el => { el.disabled = !express; });
+      show($('#expressDivider'), express);
+      const collect = express && selected('freightPayment') === 'collect';
+      show($('#collectLabel'), collect);show($('#collectWrap'), collect);
+      const other = express && selected('courier') === 'Other';
+      show($('#otherCourierWrap'), other);
+      $('#otherCourier').disabled = !other;
+      $('#collectAccount').disabled = !collect;
+      if(!other)clearError($('#otherCourier'),$('#otherCourierError'));
+      if(!collect)clearError($('#collectAccount'),$('#collectError'));
+      if(other && document.activeElement?.name === 'courier') $('#otherCourier').focus();
+    }
+    $$('input[name="shippingMethod"],input[name="freightPayment"],input[name="courier"]').forEach(el=>el.addEventListener('change',updateShipping));
+    ['otherCourier','collectAccount'].forEach(id=>$('#'+id).addEventListener('input',()=>clearError($('#'+id),$('#'+(id==='otherCourier'?'otherCourierError':'collectError')))));
+    function updateTotals(){let total=0;$$('.qty').forEach(input=>{const qty=Math.min(999,Math.max(1,parseInt(input.value,10)||1));const amount=qty*Number(input.dataset.price);input.closest('tr').querySelector('.row-amount').textContent='$'+amount.toFixed(2);total+=amount});$('#productTotal').textContent=$('#footerTotal').textContent='$'+total.toFixed(2)}
+    $$('.qty').forEach(input=>input.addEventListener('change',()=>{input.value=Math.min(999,Math.max(1,parseInt(input.value,10)||1));updateTotals()}));
+    function openModal(id){show($('#'+id),true);$('#'+id+' .close').focus()}
+    function closeModal(id){show($('#'+id),false)}
+    $$('[data-close]').forEach(button=>button.addEventListener('click',()=>closeModal(button.dataset.close)));
+    $$('.modal-scrim').forEach(scrim=>scrim.addEventListener('click',e=>{if(e.target===scrim)closeModal(scrim.id)}));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.modal-scrim').forEach(m=>closeModal(m.id))});
+    $('#addAddress').addEventListener('click',()=>{$('#addressTitle').textContent='Add Delivery Address';$('#addressInput').value='';$('#saveAddress').dataset.mode='add';openModal('addressModal')});
+    $('#changeAddress').addEventListener('click',()=>{$('#addressTitle').textContent='Change Delivery Address';$('#addressInput').value=$('#address').value;$('#saveAddress').dataset.mode='change';openModal('addressModal')});
+    $('#saveAddress').addEventListener('click',()=>{const value=$('#addressInput').value.trim();if(!value){$('#addressInput').focus();return}const option=new Option(value,value,true,true);if($('#saveAddress').dataset.mode==='change')$('#address').selectedOptions[0].replaceWith(option);else $('#address').add(option);$('#address').value=value;closeModal('addressModal')});
+    let toastTimer;function toast(message){$('#toast').textContent=message;show($('#toast'),true);clearTimeout(toastTimer);toastTimer=setTimeout(()=>show($('#toast'),false),3000)}
+    $('#backButton').addEventListener('click',()=>toast('This is the Submit Order prototype / 当前为提交订单原型页面'));
+    function reviewRow(label,value){const row=document.createElement('div');row.className='review-row';const key=document.createElement('span'),content=document.createElement('span');key.textContent=label;content.textContent=value||'—';row.append(key,content);return row}
+    $('#orderForm').addEventListener('submit',e=>{
+      e.preventDefault();let valid=true;const express=selected('shippingMethod')==='express';
+      if(express && selected('courier')==='Other' && !$('#otherCourier').value.trim()){valid=false;$('#otherCourier').classList.add('is-invalid');$('#otherCourierError').classList.add('visible')}
+      if(express && selected('freightPayment')==='collect' && !$('#collectAccount').value.trim()){valid=false;$('#collectAccount').classList.add('is-invalid');$('#collectError').classList.add('visible')}
+      if(!valid){document.querySelector('.is-invalid').focus();return}
+      const rows=$('#reviewRows');rows.replaceChildren();
+      const data=[['Shipping Method / 运输方式',express?'Express Delivery / 快递配送':'Customer Pickup / 客户自提']];
+      if(express){data.push(['Freight Payment / 运费结算',selected('freightPayment')==='collect'?'Freight Collect / 运费到付':'Freight Prepaid (Arranged by HDL) / 运费预付']);data.push(['Courier Provider / 承运快递',selected('courier')==='Other'?'Other: '+$('#otherCourier').value.trim():selected('courier')]);if(selected('freightPayment')==='collect')data.push(['Collect Account Number / 到付账号',$('#collectAccount').value.trim()])}
+      if(express)data.push(['Shipping Preference / 发货要求',selected('shippingPreference')]);data.push(['Order Remarks / 订单备注',$('#remarks').value.trim()||'—']);data.push(['Total / 商品金额',$('#productTotal').textContent]);
+      data.forEach(([key,value])=>rows.append(reviewRow(key,value)));openModal('reviewModal');
+    });
+    updateShipping();updateTotals();
+  </script>
+</body>
+</html>
