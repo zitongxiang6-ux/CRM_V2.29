@@ -75,7 +75,7 @@ const state = {
   addItemsOpen: false,
   checkoutProductTab: "standard",
   checkoutLineIds: [],
-  checkoutDraft: { reportedProject: "", project: "", business: "", address: "Georgia / Samegrelo-Zemo Svaneti 120 Tony 12345678", receiver: "Tony", phone: "12345678", country: "Georgia / Samegrelo-Zemo Svaneti", addressDetail: "120", shipping: "HDL Prepaid Freight", logistics: "DHL", freightAccount: "", dispatch: "Ready to ship", orderRemark: "" },
+  checkoutDraft: { reportedProject: "", project: "", business: "", address: "Georgia / Samegrelo-Zemo Svaneti 120 Tony 12345678", receiver: "Tony", phone: "12345678", country: "Georgia / Samegrelo-Zemo Svaneti", addressDetail: "120", shipping: "Express Delivery", freightPayment: "Freight Prepaid (Arranged by HDL)", logistics: "DHL", otherCourier: "", freightAccount: "", dispatch: "Ship Immediately", orderRemark: "" },
   modal: null,
   addressEdit: null,
   popover: null,
@@ -536,6 +536,19 @@ function reviewPairs(items) {
 
 function renderReviewBasic(order) {
   const payable = `${money(order.amount, order.currency)} (Order Total: ${money(order.productSubtotal, order.currency)}, Freight: ${money(0, order.currency)}, Pay Handling Fee: ${money(0, order.currency)})`;
+  const deliveryFields = order.shippingMethod ? [
+    ["Delivery Address", `${order.country} ${order.address}`], ["Shipping Method", order.shippingMethod],
+    ...(order.shippingMethod === "Express Delivery" ? [
+      ["Freight Payment", order.freightPayment],
+      ["Courier Provider", order.courierProvider === "Other" ? `Other (${order.logistics})` : order.logistics],
+      ...(order.freightPayment === "Freight Collect" ? [["Collect Account Number", order.freightAccount]] : []),
+      ["Shipping Preference", order.dispatch],
+    ] : []),
+    ["Receiver", order.receiver], ["Contact Number", order.phone],
+  ] : [
+    ["Delivery Address", `${order.country} ${order.address}`], ["Shipping Method", order.shipping], ["Logistics Company", order.logistics], ["Freight collect account", order.freightAccount],
+    ["Dispatch Requirement", order.dispatch], ["Receiver", order.receiver], ["Contact Number", order.phone],
+  ];
   return `
     <section class="review-section"><h3>Order Information</h3>${reviewPairs([
       ["Order Number", order.no], ["Customer Name", order.customer], ["Project Name", order.project], ["Project Number", order.projectNo],
@@ -543,10 +556,7 @@ function renderReviewBasic(order) {
       ["Contract Number", order.contract], ["HDL Ref No", order.hdl], ["ERP Order No.", order.erp], ["Whether Tax Included", order.tax],
       ["Order Status", order.status], ["Proof of Payment", order.proof], ["Order Remarks", order.orderRemarks], ["Payment Remarks", order.paymentRemarks], ["Delivery Remarks", order.deliveryRemarks]
     ])}</section>
-    <section class="review-section"><h3>Delivery Address</h3>${reviewPairs([
-      ["Delivery Address", `${order.country} ${order.address}`], ["Shipping Method", order.shipping], ["Logistics Company", order.logistics], ["Freight collect account", order.freightAccount],
-      ["Dispatch Requirement", order.dispatch], ["Receiver", order.receiver], ["Contact Number", order.phone]
-    ])}</section>
+    <section class="review-section"><h3>Delivery Address</h3>${reviewPairs(deliveryFields)}</section>
     <section class="review-section compact"><h3>Laser Engraving Required</h3><table class="laser-summary"><thead><tr><th>Panel Series</th><th>Laser Engraving Required</th></tr></thead><tbody><tr><td>Tile</td><td>${order.laserFamilies.includes("Tile Series") ? "Yes" : "No"}</td></tr><tr><td>Xelent</td><td>${order.laserFamilies.includes("Xelent Series") ? "Yes" : "No"}</td></tr></tbody></table></section>`;
 }
 
@@ -764,14 +774,35 @@ function syncCheckoutDraft() {
   draft.project = document.querySelector("#checkout-project")?.value.trim() || draft.project;
   draft.business = document.querySelector("#checkout-business")?.value || draft.business;
   draft.shipping = document.querySelector('input[name="checkout-shipping"]:checked')?.value || draft.shipping;
+  draft.freightPayment = document.querySelector('input[name="checkout-freight-payment"]:checked')?.value || draft.freightPayment;
   draft.logistics = document.querySelector('input[name="checkout-logistics"]:checked')?.value || draft.logistics;
+  draft.otherCourier = document.querySelector("#checkout-other-courier")?.value.trim() ?? draft.otherCourier;
   draft.freightAccount = document.querySelector("#checkout-freight-account")?.value.trim() ?? draft.freightAccount;
   draft.dispatch = document.querySelector('input[name="checkout-dispatch"]:checked')?.value || draft.dispatch;
-  draft.orderRemark = document.querySelector("#checkout-order-remark")?.value.trim() || draft.orderRemark;
+  draft.orderRemark = document.querySelector("#checkout-order-remark")?.value.trim() ?? draft.orderRemark;
 }
 function setCheckoutProductTab(tab) { syncCheckoutDraft(); state.checkoutProductTab = tab; render(); }
 function setCheckoutShipping(value) { syncCheckoutDraft(); state.checkoutDraft.shipping = value; setTimeout(render, 0); }
+function setCheckoutFreightPayment(value) { syncCheckoutDraft(); state.checkoutDraft.freightPayment = value; render(); }
+function setCheckoutCourier(value) { syncCheckoutDraft(); state.checkoutDraft.logistics = value; render(); }
 function openCheckoutAddressEditor() { syncCheckoutDraft(); openAddressEditor("checkout"); }
+
+function checkoutRadioOptions(name, current, options, changeHandler = "") {
+  return `<div class="radio-options">${options.map(([value, translation]) => `<label><input type="radio" name="${name}" value="${esc(value)}" ${current === value ? "checked" : ""}${changeHandler ? ` onchange="${changeHandler}"` : ""} /><span>${esc(value)}</span>${translation ? `<small>${translation}</small>` : ""}</label>`).join("")}</div>`;
+}
+
+function renderCheckoutShippingOptions(draft) {
+  const express = draft.shipping === "Express Delivery";
+  const collect = express && draft.freightPayment === "Freight Collect";
+  return `<div class="checkout-options">
+    <div class="form-field"><span><b class="required">*</b> Shipping Method <small>运输方式</small></span>${checkoutRadioOptions("checkout-shipping", draft.shipping, [["Customer Pickup", "客户自提"], ["Express Delivery", "快递配送"]], "setCheckoutShipping(this.value)")}</div>
+    ${express ? `<div class="form-field"><span><b class="required">*</b> Freight Payment <small>运费结算方式</small></span>${checkoutRadioOptions("checkout-freight-payment", draft.freightPayment, [["Freight Prepaid (Arranged by HDL)", "运费预付"], ["Freight Collect", "运费到付"]], "setCheckoutFreightPayment(this.value)")}</div>
+    <div class="form-field"><span><b class="required">*</b> Courier Provider <small>承运快递</small></span><div class="checkout-courier-field">${checkoutRadioOptions("checkout-logistics", draft.logistics, [["DHL", ""], ["FedEx", ""], ["Aramex", ""], ["UPS", ""], ["Other", "其他"]], "setCheckoutCourier(this.value)")}${draft.logistics === "Other" ? `<input id="checkout-other-courier" class="form-control" value="${esc(draft.otherCourier)}" placeholder="Please enter your designated courier" aria-label="Designated courier" />` : ""}</div></div>
+    ${collect ? `<label class="form-field"><span><b class="required">*</b> Collect Account Number <small>到付账号</small></span><input id="checkout-freight-account" class="form-control" value="${esc(draft.freightAccount)}" placeholder="Please enter your collect account number" /></label>` : ""}
+    <div class="form-field"><span>Shipping Preference <small>发货要求</small></span>${checkoutRadioOptions("checkout-dispatch", draft.dispatch, [["Ship Immediately", "立即发货"], ["Ship In-Stock Items First", "有货先发"], ["Ship All Items Together", "齐货后发"], ["To Be Discussed", "待沟通"]])}</div>` : ""}
+    <label class="form-field"><span>Order Remarks <small>订单备注（选填）</small></span><input id="checkout-order-remark" class="form-control" value="${esc(draft.orderRemark)}" placeholder="Packaging requirements, delivery instructions, or other special requests" /></label>
+  </div>`;
+}
 
 function renderCheckout() {
   const selected = checkoutLines();
@@ -781,11 +812,9 @@ function renderCheckout() {
   const total = standard.reduce((sum, line) => sum + line.price * line.qty, 0);
   const draft = state.checkoutDraft;
   const productLines = state.checkoutProductTab === "nonstandard" ? custom : standard;
-  const showLogistics = draft.shipping !== "Customer Pickup";
-  const showFreightAccount = draft.shipping === "Freight Collect";
   return `<section class="page checkout-page">
     <section class="checkout-section checkout-project-section"><div class="form-grid checkout-project-fields"><label class="form-field"><span>Project Name</span><select id="checkout-reported-project" class="form-control"><option value="">Please select</option><option ${draft.reportedProject === "Smart Villa - Moscow" ? "selected" : ""}>Smart Villa - Moscow</option></select></label><label class="form-field"><span>Project Name</span><input id="checkout-project" class="form-control" value="${esc(draft.project)}" placeholder="Please enter the project name" /></label><label class="form-field"><span><b class="required">*</b> Business Type</span><select id="checkout-business" class="form-control"><option value="">Please select</option><option ${draft.business === "Project Order" ? "selected" : ""}>Project Order</option><option ${draft.business === "Home" ? "selected" : ""}>Home</option></select></label></div><p class="field-note">Note: If the project has not been reported, you can directly enter the project name.</p></section>
-    <section class="checkout-section"><div class="section-title checkout-heading"><h2>Delivery Address</h2><span class="spacer"></span><button class="small-button" type="button" onclick="openCheckoutAddressEditor()">Add</button></div><div class="checkout-address-field"><span><b class="required">*</b> Delivery Address</span><select class="form-control"><option>${esc(draft.address)}</option></select><button class="link-button" type="button" onclick="openCheckoutAddressEditor()">Change Address</button></div><div class="checkout-options"><div class="form-field"><span><b class="required">*</b> Shipping Method</span><div class="radio-options">${["HDL Prepaid Freight", "Customer Pickup", "Freight Collect"].map((option) => `<label><input type="radio" name="checkout-shipping" value="${option}" ${draft.shipping === option ? "checked" : ""} onchange="setCheckoutShipping(this.value)" /><span>${option}</span></label>`).join("")}</div></div>${showLogistics ? `<div class="form-field"><span><b class="required">*</b> Logistics Company</span>${radioOptions("checkout-logistics", draft.logistics, ["DHL", "Fedex", "Aramex", "UPS"])}</div>` : ""}${showFreightAccount ? `<label class="form-field"><span><b class="required">*</b> Freight collect account</span><input id="checkout-freight-account" class="form-control" value="${esc(draft.freightAccount)}" placeholder="Please input" /></label>` : ""}<div class="form-field"><span><b class="required">*</b> Dispatch Requirement</span>${radioOptions("checkout-dispatch", draft.dispatch, ["Ready to ship", "Ship available stock first", "Ship together"])}</div><label class="form-field"><span>Order Remarks</span><input id="checkout-order-remark" class="form-control" value="${esc(draft.orderRemark)}" placeholder="Please input order remarks" /></label></div></section>
+    <section class="checkout-section"><div class="section-title checkout-heading"><h2>Delivery Address</h2><span class="spacer"></span><button class="small-button" type="button" onclick="openCheckoutAddressEditor()">Add</button></div><div class="checkout-address-field"><span><b class="required">*</b> Delivery Address</span><select class="form-control"><option>${esc(draft.address)}</option></select><button class="link-button" type="button" onclick="openCheckoutAddressEditor()">Change Address</button></div>${renderCheckoutShippingOptions(draft)}</section>
     <section class="checkout-section checkout-product-section"><div class="section-title checkout-heading"><h2>Product Information</h2></div><div class="checkout-product-tabs"><button class="${state.checkoutProductTab === "standard" ? "active" : ""}" type="button" onclick="setCheckoutProductTab('standard')">Standard Products</button><button class="${state.checkoutProductTab === "nonstandard" ? "active" : ""}" type="button" onclick="setCheckoutProductTab('nonstandard')">No-standard Products</button><span>Note: Prices for non-standard customized products are to be determined and will be finalized after HDL's review.</span></div>${checkoutProductsTable(productLines, state.checkoutProductTab === "nonstandard")}</section>
     <div class="checkout-summary"><span>Standard Products: <b>${standard.length}</b></span><span>No-standard Products: <b>${custom.length}</b></span><span class="spacer"></span><span>Total: <strong>${money(total)}</strong></span><span>(Non-standard product prices are not included)</span><button class="outline-button" type="button" onclick="go('cart')">Back</button><button class="primary-button" type="button" onclick="submitCheckout()">Submit</button></div>
   </section>`;
@@ -797,7 +826,11 @@ function submitCheckout() {
   const project = draft.project || draft.reportedProject;
   if (!project) return showToast("Please select or enter the project name.");
   if (!draft.business) return showToast("Please select the business type.");
-  if (draft.shipping === "Freight Collect" && !draft.freightAccount) return showToast("Please enter the freight collect account.");
+  const express = draft.shipping === "Express Delivery";
+  if (express && !draft.freightPayment) return showToast("Please select a freight payment method.");
+  if (express && !draft.logistics) return showToast("Please select a courier provider.");
+  if (express && draft.logistics === "Other" && !draft.otherCourier) return showToast("Please enter your designated courier.");
+  if (express && draft.freightPayment === "Freight Collect" && !draft.freightAccount) return showToast("Please enter the collect account number.");
   const selected = checkoutLines();
   if (!selected.length) return go("cart");
   const standard = selected.filter((line) => !line.custom);
@@ -809,10 +842,11 @@ function submitCheckout() {
     const family = line.name.includes("Xelent") ? "Xelent Series" : "Tile Series";
     if (!laserFamilies.includes(family)) laserFamilies.push(family);
   });
-  state.orders.unshift({ id, no: `DD-2026-07-17000${id}`, customer: "Current Channel Partner", project, business: draft.business, hdl: `HT-20260717${id}`, po: "-", laser: laserFamilies.length ? "Yes" : "No", date: today, productSubtotal: total, paid: 0, currency: "USD", amount: total, projectNo: "-", contract: "-", tax: "Tax excluded", status: "Pending Confirmation", reviewResult: "-", reviewNote: "-", erp: "-", receiver: draft.receiver || "Tony", phone: draft.phone || "12345678", country: draft.country || "Georgia / Samegrelo-Zemo Svaneti", address: draft.addressDetail || "120", shipping: draft.shipping, logistics: draft.shipping === "Customer Pickup" ? "-" : draft.logistics, paymentMethod: "USD", orderRemarks: draft.orderRemark || "-", paymentRemarks: "-", deliveryRemarks: "-", proof: "-", freightAccount: draft.shipping === "Freight Collect" ? draft.freightAccount : "-", dispatch: draft.dispatch, shippingTime: "-", discount: "No discount", engravingSupplier: laserFamilies.includes("Xelent Series") ? "Xelent" : "Tile 2.1", laserFile: "-", laserFiles: {}, tileLaser: laserFamilies.includes("Tile Series") ? "Yes" : "No", laserFamilies, orderProducts: { standardQty: standard.reduce((sum, line) => sum + line.qty, 0), nonstandardQty: selected.filter((line) => line.custom).reduce((sum, line) => sum + line.qty, 0) } });
+  const legacyShipping = express ? (draft.freightPayment === "Freight Collect" ? "Freight Collect" : "HDL Prepaid Freight") : "Customer Pickup";
+  state.orders.unshift({ id, no: `DD-2026-07-17000${id}`, customer: "Current Channel Partner", project, business: draft.business, hdl: `HT-20260717${id}`, po: "-", laser: laserFamilies.length ? "Yes" : "No", date: today, productSubtotal: total, paid: 0, currency: "USD", amount: total, projectNo: "-", contract: "-", tax: "Tax excluded", status: "Pending Confirmation", reviewResult: "-", reviewNote: "-", erp: "-", receiver: draft.receiver || "Tony", phone: draft.phone || "12345678", country: draft.country || "Georgia / Samegrelo-Zemo Svaneti", address: draft.addressDetail || "120", shipping: legacyShipping, shippingMethod: draft.shipping, freightPayment: express ? draft.freightPayment : "-", courierProvider: express ? draft.logistics : "-", logistics: express ? (draft.logistics === "Other" ? draft.otherCourier : draft.logistics) : "-", paymentMethod: "USD", orderRemarks: draft.orderRemark || "-", paymentRemarks: "-", deliveryRemarks: "-", proof: "-", freightAccount: express && draft.freightPayment === "Freight Collect" ? draft.freightAccount : "-", dispatch: express ? draft.dispatch : "-", shippingTime: "-", discount: "No discount", engravingSupplier: laserFamilies.includes("Xelent Series") ? "Xelent" : "Tile 2.1", laserFile: "-", laserFiles: {}, tileLaser: laserFamilies.includes("Tile Series") ? "Yes" : "No", laserFamilies, orderProducts: { standardQty: standard.reduce((sum, line) => sum + line.qty, 0), nonstandardQty: selected.filter((line) => line.custom).reduce((sum, line) => sum + line.qty, 0) } });
   state.cart = state.cart.filter((line) => !state.checkoutLineIds.includes(line.lineId));
   state.checkoutLineIds = [];
-  state.checkoutDraft = { reportedProject: "", project: "", business: "", address: draft.address, receiver: draft.receiver, phone: draft.phone, country: draft.country, addressDetail: draft.addressDetail, shipping: "HDL Prepaid Freight", logistics: "DHL", freightAccount: "", dispatch: "Ready to ship", orderRemark: "" };
+  state.checkoutDraft = { reportedProject: "", project: "", business: "", address: draft.address, receiver: draft.receiver, phone: draft.phone, country: draft.country, addressDetail: draft.addressDetail, shipping: "Express Delivery", freightPayment: "Freight Prepaid (Arranged by HDL)", logistics: "DHL", otherCourier: "", freightAccount: "", dispatch: "Ship Immediately", orderRemark: "" };
   showToast("Order submitted and changed to Pending Confirmation.");
   go("orders");
 }

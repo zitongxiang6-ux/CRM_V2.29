@@ -440,6 +440,10 @@ tbody tr:hover td { background: #fcf8fd; }
 .checkout-address-field { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; gap: 12px; align-items: center; margin-bottom: 16px; }
 .checkout-address-field > span { color: #56606a; font-size: 12px; font-weight: 600; text-align: right; }
 .checkout-address-field .link-button { white-space: nowrap; }
+.checkout-options .form-field > span small, .checkout-options .radio-options small { margin-left: 4px; color: #858d96; font-size: 12px; font-weight: 400; }
+.checkout-options .radio-options label span { color: #414a54; font-size: 13px; font-weight: 400; }
+.checkout-courier-field { min-width: 0; }
+.checkout-courier-field > .form-control { display: block; width: min(400px, 100%); margin-top: 8px; }
 .checkout-product-tabs { min-height: 44px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .checkout-product-tabs button { min-height: 42px; padding: 0 22px; border: 0; background: #fff; color: #303741; white-space: nowrap; }
 .checkout-product-tabs button.active { background: #d293ec; color: #fff; font-weight: 600; }
