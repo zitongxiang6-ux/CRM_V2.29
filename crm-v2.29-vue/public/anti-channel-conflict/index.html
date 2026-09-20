@@ -209,12 +209,16 @@
     select { width: 100%; height: 100%; appearance: none; border: 0; outline: 0; background: transparent; padding: 0 28px 0 12px; color: #595d65; }
     select.placeholder { color: #b8bbc3; }
 
+    .date-filter { min-width: 0; align-self: start; }
     .date-range { display: flex; align-items: center; padding: 0 9px; gap: 6px; }
-    .date-range input { min-width: 0; flex: 1; border: 0; outline: 0; color: #6c7079; background: transparent; }
+    .date-boundary { min-width: 0; flex: 1; display: flex; align-items: center; gap: 6px; }
+    .date-boundary span { flex: none; color: #8b8e97; font-size: 12px; white-space: nowrap; }
+    .date-range input { min-width: 0; width: 100%; flex: 1; border: 0; outline: 0; color: #6c7079; background: transparent; font-size: 12px; }
     .date-range input::-webkit-calendar-picker-indicator { opacity: .5; }
     .date-range .date-sep { color: #a4a8b1; }
+    .date-filter-note { margin-top: 6px; color: #7f8490; font-size: 12px; line-height: 1; }
 
-    .filter-actions { display: flex; justify-content: flex-end; gap: 10px; grid-column: 5; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 10px; grid-column: 5; align-self: start; }
 
     .btn {
       height: 33px;
@@ -445,13 +449,27 @@
           <input id="customerFilter" class="field" type="text" placeholder="请输入客户名称">
           <input id="orderFilter" class="field" type="text" placeholder="请输入订单号">
           <div class="select-wrap"><select id="typeFilter" class="placeholder"><option value="">请选择异常类型</option><option>国内流向国外</option><option>海外跨国流向</option></select></div>
-          <div class="select-wrap"><select id="expectedFilter" class="placeholder"><option value="">请选择可使用国家</option><option>中国</option><option>马来西亚</option><option>阿联酋</option><option>法国</option><option>澳大利亚</option><option>土耳其</option><option>巴西</option></select></div>
-          <div class="select-wrap"><select id="actualFilter" class="placeholder"><option value="">请选择实际IP国家</option><option>新加坡</option><option>印度尼西亚</option><option>沙特阿拉伯</option><option>德国</option><option>西班牙</option><option>新西兰</option><option>泰国</option><option>保加利亚</option><option>阿根廷</option></select></div>
+          <input id="expectedFilter" class="field" type="text" list="expectedCountries" autocomplete="off" placeholder="请输入可使用国家">
+          <input id="actualFilter" class="field" type="text" list="actualCountries" autocomplete="off" placeholder="请输入实际IP国家">
+          <datalist id="expectedCountries"><option value="中国"><option value="马来西亚"><option value="阿联酋"><option value="法国"><option value="澳大利亚"><option value="土耳其"><option value="巴西"></datalist>
+          <datalist id="actualCountries"><option value="新加坡"><option value="印度尼西亚"><option value="沙特阿拉伯"><option value="德国"><option value="西班牙"><option value="新西兰"><option value="泰国"><option value="保加利亚"><option value="阿根廷"><option value="越南"></datalist>
 
-          <div class="date-range"><input id="dateStart" type="date" aria-label="首次发现开始时间"><span class="date-sep">~</span><input id="dateEnd" type="date" aria-label="首次发现结束时间"></div>
-          <div></div>
-          <div></div>
-          <div></div>
+          <div class="date-filter">
+            <div class="date-range">
+              <label class="date-boundary"><span>开始日期</span><input id="lastDateStart" type="date" aria-label="最近发现开始日期"></label>
+              <span class="date-sep">~</span>
+              <label class="date-boundary"><span>结束日期</span><input id="lastDateEnd" type="date" aria-label="最近发现结束日期"></label>
+            </div>
+            <div class="date-filter-note">最近发现时间</div>
+          </div>
+          <div class="date-filter">
+            <div class="date-range">
+              <label class="date-boundary"><span>开始日期</span><input id="firstDateStart" type="date" aria-label="首次发现开始日期"></label>
+              <span class="date-sep">~</span>
+              <label class="date-boundary"><span>结束日期</span><input id="firstDateEnd" type="date" aria-label="首次发现结束日期"></label>
+            </div>
+            <div class="date-filter-note">首次发现时间</div>
+          </div>
           <div class="filter-actions">
             <button id="resetBtn" class="btn" type="button">重置</button>
             <button id="queryBtn" class="btn btn-primary" type="button">查询</button>
@@ -550,7 +568,7 @@
     const body = document.getElementById('tableBody');
     const empty = document.getElementById('emptyState');
     const total = document.getElementById('totalCount');
-    const filters = ['productNameFilter','productModelFilter','productNoFilter','deviceSnFilter','deviceMacFilter','customerFilter','orderFilter','typeFilter','expectedFilter','actualFilter','dateStart','dateEnd'];
+    const filters = ['productNameFilter','productModelFilter','productNoFilter','deviceSnFilter','deviceMacFilter','customerFilter','orderFilter','typeFilter','expectedFilter','actualFilter','lastDateStart','lastDateEnd','firstDateStart','firstDateEnd'];
 
     function safe(value) {
       return String(value).replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -605,10 +623,13 @@
       const type = value('typeFilter');
       const expected = value('expectedFilter');
       const actual = value('actualFilter');
-      const start = document.getElementById('dateStart').value;
-      const end = document.getElementById('dateEnd').value;
+      const lastStart = document.getElementById('lastDateStart').value;
+      const lastEnd = document.getElementById('lastDateEnd').value;
+      const firstStart = document.getElementById('firstDateStart').value;
+      const firstEnd = document.getElementById('firstDateEnd').value;
       const rows = records.filter(r => {
         const firstDate = r.first.slice(0, 10).replaceAll('/', '-');
+        const lastDate = r.last.slice(0, 10).replaceAll('/', '-');
         return (!productName || r.product.toLowerCase().includes(productName))
           && (!productModel || r.model.toLowerCase().includes(productModel))
           && (!productNo || r.productNo.toLowerCase().includes(productNo))
@@ -617,10 +638,12 @@
           && (!customer || r.customer.toLowerCase().includes(customer))
           && (!order || r.order.toLowerCase().includes(order))
           && (!type || r.type.toLowerCase() === type)
-          && (!expected || r.expected.toLowerCase() === expected)
-          && (!actual || r.actual.toLowerCase() === actual)
-          && (!start || firstDate >= start)
-          && (!end || firstDate <= end);
+          && (!expected || r.expected.toLowerCase().includes(expected))
+          && (!actual || r.actual.toLowerCase().includes(actual))
+          && (!lastStart || lastDate >= lastStart)
+          && (!lastEnd || lastDate <= lastEnd)
+          && (!firstStart || firstDate >= firstStart)
+          && (!firstEnd || firstDate <= firstEnd);
       });
       render(rows);
     }
