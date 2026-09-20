@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HDL CRM 串货异常记录</title>
+  <style>
+    :root {
+      --brand: #8a00a8;
+      --brand-dark: #73008e;
+      --brand-soft: #fbf4fd;
+      --ink: #30313a;
+      --muted: #7f8490;
+      --line: #e7e9ee;
+      --page: #f5f7fa;
+      --danger: #d9485f;
+      --orange: #d66b19;
+      --blue: #226bb4;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; min-width: 1180px; height: 100%; }
+
+    body {
+      color: var(--ink);
+      background: var(--page);
+      font: 14px/1.5 "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    button, input, select { font: inherit; }
+
+    .topbar {
+      position: fixed;
+      z-index: 30;
+      inset: 0 0 auto 0;
+      height: 59px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      box-shadow: 0 1px 7px rgba(35, 39, 48, .10);
+    }
+
+    .brand-wrap { display: flex; align-items: center; height: 100%; padding-left: 24px; }
+
+    .logo {
+      position: relative;
+      display: inline-flex;
+      height: 33px;
+      min-width: 85px;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, #79009a, #a400b7);
+      font: 700 27px/1 Arial, sans-serif;
+      letter-spacing: -1px;
+      padding: 0 8px 1px;
+    }
+
+    .logo::after {
+      content: "®";
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 7px;
+      letter-spacing: 0;
+    }
+
+    .crm-name { margin-left: 10px; color: var(--brand); font-size: 18px; font-weight: 700; }
+
+    .top-actions { display: flex; align-items: center; height: 100%; margin-right: 23px; color: #22232a; }
+
+    .top-action {
+      display: inline-flex;
+      height: 40%;
+      align-items: center;
+      gap: 9px;
+      padding: 0 22px;
+      border-right: 1px solid #e8e8eb;
+      white-space: nowrap;
+    }
+
+    .top-action svg { width: 17px; height: 17px; fill: #17152a; }
+    .top-action .notice-dot { fill: #e22b45; }
+
+    .profile { display: flex; align-items: center; gap: 8px; padding-left: 24px; }
+
+    .profile-mark {
+      width: 23px;
+      height: 23px;
+      border-radius: 8px;
+      background: conic-gradient(#ffd44f 0 25%, #51b6ff 0 50%, #8061df 0 75%, #54cb8b 0);
+      position: relative;
+    }
+
+    .profile-mark::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: white; }
+    .caret { color: #8b8e98; font-size: 13px; }
+
+    .sidebar {
+      position: fixed;
+      z-index: 20;
+      top: 59px;
+      bottom: 0;
+      left: 0;
+      width: 184px;
+      background: #fff;
+      box-shadow: 2px 0 8px rgba(41, 45, 55, .05);
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #8e8e8e transparent;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 9px; }
+    .sidebar::-webkit-scrollbar-thumb { background: #8c8c8c; border-radius: 6px; border: 2px solid white; }
+
+    .menu-watermark { position: absolute; inset: 0; pointer-events: none; overflow: hidden; opacity: .05; }
+    .menu-watermark span { position: absolute; color: #5b5761; transform: rotate(-19deg); white-space: nowrap; }
+
+    .menu-list { position: relative; padding: 17px 0 40px; }
+
+    .menu-item {
+      height: 48px;
+      padding: 0 20px 0 50px;
+      display: flex;
+      align-items: center;
+      color: #353641;
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .menu-item.active { color: var(--brand); background: linear-gradient(90deg, #fbf0fd, #f8f1fb); font-weight: 600; }
+    .menu-item.active::after { content: ""; position: absolute; right: 15px; top: 0; width: 2px; height: 100%; background: var(--brand); }
+
+    .menu-group { margin-top: 2px; }
+
+    .menu-heading {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 23px;
+      color: #30313a;
+      gap: 11px;
+      white-space: nowrap;
+    }
+
+    .menu-heading svg { width: 15px; height: 15px; stroke: #686b76; fill: none; stroke-width: 1.5; }
+    .menu-heading .expand { margin-left: auto; color: #676a74; font-weight: 700; }
+
+    .workspace {
+      position: fixed;
+      inset: 59px 0 0 184px;
+      overflow: auto;
+      background-color: var(--page);
+      background-image:
+        linear-gradient(165deg, transparent 0 48%, rgba(90, 90, 100, .014) 49% 50%, transparent 51% 100%);
+    }
+
+    .watermarks {
+      position: fixed;
+      z-index: 0;
+      inset: 59px 0 0 184px;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: .07;
+    }
+
+    .watermarks span { position: absolute; color: #73757c; transform: rotate(-18deg); font-size: 16px; white-space: nowrap; }
+
+    .content { position: relative; z-index: 1; min-width: 1280px; padding: 11px 20px 44px; }
+
+    .breadcrumb { height: 29px; display: flex; align-items: center; gap: 12px; color: #89909a; font-size: 13px; }
+    .breadcrumb .current { color: #4b4e56; }
+
+    .card {
+      min-height: 757px;
+      background: #fff;
+      border: 1px solid #eef0f3;
+      box-shadow: 0 2px 10px rgba(37, 42, 51, .06);
+      padding: 19px 20px 18px;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.05fr) minmax(180px, 1.05fr) minmax(180px, 1.05fr) minmax(165px, .9fr) minmax(165px, .9fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+
+    .field, .select-wrap, .date-range {
+      width: 100%;
+      height: 33px;
+      border: 1px solid #d8dade;
+      border-radius: 4px;
+      background: #fff;
+      color: #4a4d55;
+      outline: none;
+    }
+
+    .field { padding: 0 12px; }
+    .field::placeholder { color: #b9bdc5; }
+    .field:focus, select:focus, .date-range:focus-within { border-color: #bb6cca; box-shadow: 0 0 0 2px rgba(138, 0, 168, .06); }
+
+    .select-wrap { position: relative; }
+    .select-wrap::after { content: "⌄"; position: absolute; right: 11px; top: 4px; color: #a8abb2; pointer-events: none; }
+
+    select { width: 100%; height: 100%; appearance: none; border: 0; outline: 0; background: transparent; padding: 0 28px 0 12px; color: #595d65; }
+    select.placeholder { color: #b8bbc3; }
+
+    .date-range { display: flex; align-items: center; padding: 0 9px; gap: 6px; }
+    .date-range input { min-width: 0; flex: 1; border: 0; outline: 0; color: #6c7079; background: transparent; }
+    .date-range input::-webkit-calendar-picker-indicator { opacity: .5; }
+    .date-range .date-sep { color: #a4a8b1; }
+
+    .filter-actions { display: flex; justify-content: flex-end; gap: 10px; grid-column: 5; }
+
+    .btn {
+      height: 33px;
+      min-width: 64px;
+      padding: 0 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #d8dade;
+      background: #fff;
+      color: #555960;
+    }
+
+    .btn:hover { border-color: #a9acb3; }
+    .btn-primary { color: #fff; border-color: var(--brand); background: var(--brand); box-shadow: 0 1px 2px rgba(138, 0, 168, .12); }
+    .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+
+    .table-wrap { margin-top: 20px; overflow-x: auto; }
+
+    table { width: 100%; min-width: 1645px; border-collapse: collapse; table-layout: fixed; }
+
+    th {
+      height: 51px;
+      padding: 0 10px;
+      background: #fafafb;
+      color: #4d5058;
+      text-align: left;
+      font-weight: 500;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    td {
+      height: 53px;
+      padding: 7px 10px;
+      color: #4f5158;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover { background: #fbf7fc; }
+    tbody tr.selected { background: #faf4fc; }
+
+    .type-pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+    .type-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .type-cn { color: var(--danger); }
+    .type-global { color: var(--orange); }
+
+    .device-cell { line-height: 1.35; }
+    .device-cell small { display: block; color: #999da6; font-size: 11px; }
+    .product-thumb {
+      position: relative;
+      width: 38px;
+      height: 30px;
+      border-radius: 3px;
+      background: linear-gradient(145deg, #4d5158, #15171a);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.13), 0 1px 3px rgba(32,34,38,.2);
+      overflow: hidden;
+    }
+    .product-thumb::before { content: ""; position: absolute; left: 5px; right: 5px; top: 7px; height: 3px; background: #767b83; box-shadow: 0 7px 0 #696e76, 0 14px 0 #5a5f66; }
+    .product-thumb.panel { background: linear-gradient(145deg, #30343a, #0f1114); }
+    .product-thumb.panel::before { left: 6px; right: 6px; top: 6px; height: 7px; background: linear-gradient(90deg, #757a82 45%, transparent 45% 55%, #757a82 55%); box-shadow: 0 10px 0 #62676f; }
+    .product-thumb.motor { width: 42px; height: 18px; border-radius: 9px; background: linear-gradient(180deg, #f2f2f2, #babdc1); }
+    .product-thumb.motor::before { left: 4px; right: 4px; top: 7px; height: 4px; background: #d6d8db; box-shadow: none; }
+    .detail-product-image { padding: 4px 0; }
+    .country { display: inline-flex; align-items: center; gap: 5px; }
+    .country small { color: #a1a5ad; font-size: 11px; }
+    .country-arrow { color: #b2b4ba; margin: 0 2px; }
+    .count { font-variant-numeric: tabular-nums; }
+    .info-tip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      margin-left: 3px;
+      border: 1px solid #b7bac2;
+      border-radius: 50%;
+      color: #9296a0;
+      font-size: 10px;
+      cursor: help;
+      vertical-align: 1px;
+    }
+
+    .detail-link { color: var(--brand); cursor: pointer; text-decoration: none; }
+    .detail-link:hover { text-decoration: underline; }
+
+    .empty { display: none; height: 270px; align-items: center; justify-content: center; color: #a1a4ac; flex-direction: column; gap: 8px; }
+    .empty svg { width: 45px; height: 45px; stroke: #c7cad1; fill: none; stroke-width: 1.5; }
+
+    .pager { min-width: 1645px; height: 64px; display: flex; align-items: center; justify-content: flex-end; gap: 9px; color: #5a5d65; }
+    .pager button, .pager .page-box, .pager select, .pager input { height: 33px; border: 1px solid #d9dbe0; border-radius: 4px; background: #fff; color: #555860; }
+    .pager button { min-width: 33px; cursor: pointer; }
+    .pager .active { border-color: var(--brand); color: var(--brand); }
+    .pager .page-size { width: 93px; padding: 0 9px; }
+    .pager input { width: 50px; padding: 0 8px; text-align: center; }
+    .pager .ellipsis { color: #a9acb4; padding: 0 2px; letter-spacing: 2px; }
+
+    .mask { position: fixed; z-index: 60; inset: 0; background: rgba(20, 21, 26, .28); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .mask.open { opacity: 1; pointer-events: auto; }
+
+    .drawer {
+      position: fixed;
+      z-index: 70;
+      top: 0;
+      right: 0;
+      width: 680px;
+      max-width: 55vw;
+      height: 100vh;
+      background: #fff;
+      box-shadow: -8px 0 24px rgba(33, 35, 41, .16);
+      transform: translateX(102%);
+      transition: transform .24s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-head { height: 64px; flex: 0 0 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid #eceef1; }
+    .drawer-title { font-size: 17px; font-weight: 600; }
+    .drawer-close { border: 0; background: transparent; font-size: 25px; color: #8a8e96; cursor: pointer; }
+    .drawer-body { padding: 18px 22px 32px; overflow-y: auto; }
+
+    .summary-line { display: flex; align-items: center; padding-bottom: 17px; }
+    .section-title { margin: 18px 0 10px; font-size: 15px; font-weight: 600; color: #373943; }
+    .desc-grid { display: grid; grid-template-columns: 104px 1fr; border-top: 1px solid #eceef1; border-left: 1px solid #eceef1; }
+    .desc-grid > div { min-height: 39px; display: flex; align-items: center; padding: 8px 10px; border-right: 1px solid #eceef1; border-bottom: 1px solid #eceef1; }
+    .desc-grid .label { color: #80848e; background: #fafafb; }
+    .shipment-help { margin: 8px 0 0 104px; color: #8b8e97; font-size: 12px; line-height: 1.7; }
+
+    .logic {
+      padding: 12px 14px;
+      background: #faf6fb;
+      border-left: 3px solid var(--brand);
+      color: #555861;
+      line-height: 1.7;
+    }
+
+    .observation-scroll { overflow-x: auto; border: 1px solid #eceef1; }
+    .observation-table { width: 100%; min-width: 610px; table-layout: fixed; }
+    .observation-table th { height: 39px; padding: 0 8px; font-size: 12px; }
+    .observation-table td { height: 43px; padding: 6px 8px; font-size: 12px; white-space: normal; line-height: 1.45; }
+    .observation-table tbody tr:last-child td { border-bottom: 0; }
+    .event-index { color: var(--brand); font-weight: 500; }
+    .evidence-note { margin-top: 17px; color: #8b8e97; font-size: 12px; line-height: 1.7; }
+
+    @media (max-width: 1450px) {
+      .filters { grid-template-columns: repeat(4, minmax(180px, 1fr)); }
+      .filter-actions { grid-column: 4; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="logo">HDL</div>
+      <div class="crm-name">CRM</div>
+    </div>
+    <div class="top-actions">
+      <div class="top-action">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.4 2.4 0 0 0 2.3-1.7H9.7A2.4 2.4 0 0 0 12 22Zm7.2-5.2-1.8-2.1V10a5.5 5.5 0 0 0-4.3-5.4V3.4a1.1 1.1 0 0 0-2.2 0v1.2A5.5 5.5 0 0 0 6.6 10v4.7l-1.8 2.1a1 1 0 0 0 .8 1.7h12.8a1 1 0 0 0 .8-1.7Z"/><circle class="notice-dot" cx="18.7" cy="4.3" r="2.1"/></svg>
+        <span>消息中心</span>
+      </div>
+      <div class="top-action">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m19.4 13.2.1-1.2-.1-1.2 2-1.5-2-3.5-2.3 1a8 8 0 0 0-2-1.2L14.8 3h-4l-.3 2.6a8 8 0 0 0-2 1.2l-2.3-1-2 3.5 2 1.5-.1 1.2.1 1.2-2 1.5 2 3.5 2.3-1a8 8 0 0 0 2 1.2l.3 2.6h4l.3-2.6a8 8 0 0 0 2-1.2l2.3 1 2-3.5-2-1.5ZM12.8 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/></svg>
+        <span>系统设置</span>
+      </div>
+      <div class="profile">
+        <div class="profile-mark"></div>
+        <span>Hi~向紫彤</span>
+        <span class="caret">⌄</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="menu-watermark">
+      <span style="top:70px;left:36px">向紫彤 9652</span><span style="top:250px;left:18px">向紫彤 9652</span><span style="top:430px;left:34px">向紫彤 9652</span><span style="top:610px;left:18px">向紫彤 9652</span><span style="top:790px;left:34px">向紫彤 9652</span>
+    </div>
+    <div class="menu-list">
+      <div class="menu-item">产品类别管理</div>
+      <div class="menu-item">产品定价设置</div>
+      <div class="menu-item">生态对接品管理</div>
+      <div class="menu-item">镭雕定制</div>
+      <div class="menu-item">优选商城</div>
+      <div class="menu-item">购物车</div>
+      <div class="menu-item">国际产品清单</div>
+      <div class="menu-item">产品文档管理</div>
+      <div class="menu-item">产品品号</div>
+      <div class="menu-item active">串货异常记录</div>
+      <div class="menu-item">无效产品</div>
+      <div class="menu-item">采购单管理</div>
+      <div class="menu-item">客户采购单</div>
+      <div class="menu-item">采购品管理</div>
+      <div class="menu-group">
+        <div class="menu-heading"><svg viewBox="0 0 20 20"><circle cx="6" cy="6" r="3"/><circle cx="14" cy="6" r="3"/><circle cx="6" cy="14" r="3"/><circle cx="14" cy="14" r="3"/></svg><span>配置中心</span><span class="expand">⌄</span></div>
+        <div class="menu-heading"><svg viewBox="0 0 20 20"><path d="M4 3h10v14H4zM7 7h4M7 10h4M7 13h3M15 6h2v11H7"/></svg><span>合同中心</span><span class="expand">⌄</span></div>
+        <div class="menu-heading"><svg viewBox="0 0 20 20"><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h4"/></svg><span>订单中心</span><span class="expand">⌄</span></div>
+        <div class="menu-heading"><svg viewBox="0 0 20 20"><path d="M4 12v-2a6 6 0 0 1 12 0v2M3 12h3v5H3zM14 12h3v5h-3zM9 17h5"/></svg><span>售后中心</span><span class="expand">⌄</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="watermarks" aria-hidden="true">
+    <span style="top:16px;left:330px">向紫彤 9652</span><span style="top:16px;left:830px">向紫彤 9652</span><span style="top:16px;left:1330px">向紫彤 9652</span>
+    <span style="top:145px;left:80px">向紫彤 9652</span><span style="top:145px;left:580px">向紫彤 9652</span><span style="top:145px;left:1080px">向紫彤 9652</span><span style="top:145px;left:1580px">向紫彤 9652</span>
+    <span style="top:275px;left:330px">向紫彤 9652</span><span style="top:275px;left:830px">向紫彤 9652</span><span style="top:275px;left:1330px">向紫彤 9652</span>
+    <span style="top:405px;left:80px">向紫彤 9652</span><span style="top:405px;left:580px">向紫彤 9652</span><span style="top:405px;left:1080px">向紫彤 9652</span><span style="top:405px;left:1580px">向紫彤 9652</span>
+    <span style="top:535px;left:330px">向紫彤 9652</span><span style="top:535px;left:830px">向紫彤 9652</span><span style="top:535px;left:1330px">向紫彤 9652</span>
+    <span style="top:665px;left:80px">向紫彤 9652</span><span style="top:665px;left:580px">向紫彤 9652</span><span style="top:665px;left:1080px">向紫彤 9652</span><span style="top:665px;left:1580px">向紫彤 9652</span>
+    <span style="top:795px;left:330px">向紫彤 9652</span><span style="top:795px;left:830px">向紫彤 9652</span><span style="top:795px;left:1330px">向紫彤 9652</span>
+  </div>
+
+  <main class="workspace">
+    <div class="content">
+      <div class="breadcrumb"><span>产品中心</span><span>/</span><span class="current">串货异常记录</span></div>
+      <section class="card">
+        <div class="filters">
+          <input id="productNameFilter" class="field" type="text" placeholder="请输入产品名称">
+          <input id="productModelFilter" class="field" type="text" placeholder="请输入产品型号">
+          <input id="productNoFilter" class="field" type="text" placeholder="请输入产品编号">
+          <input id="deviceSnFilter" class="field" type="text" placeholder="请输入设备SN">
+          <input id="deviceMacFilter" class="field" type="text" placeholder="请输入设备MAC">
+
+          <input id="customerFilter" class="field" type="text" placeholder="请输入客户名称">
+          <input id="orderFilter" class="field" type="text" placeholder="请输入订单号">
+          <div class="select-wrap"><select id="typeFilter" class="placeholder"><option value="">请选择异常类型</option><option>国内流向国外</option><option>海外跨国流向</option></select></div>
+          <div class="select-wrap"><select id="expectedFilter" class="placeholder"><option value="">请选择可使用国家</option><option>中国</option><option>马来西亚</option><option>阿联酋</option><option>法国</option><option>澳大利亚</option><option>土耳其</option><option>巴西</option></select></div>
+          <div class="select-wrap"><select id="actualFilter" class="placeholder"><option value="">请选择实际IP国家</option><option>新加坡</option><option>印度尼西亚</option><option>沙特阿拉伯</option><option>德国</option><option>西班牙</option><option>新西兰</option><option>泰国</option><option>保加利亚</option><option>阿根廷</option></select></div>
+
+          <div class="date-range"><input id="dateStart" type="date" aria-label="首次发现开始时间"><span class="date-sep">~</span><input id="dateEnd" type="date" aria-label="首次发现结束时间"></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div class="filter-actions">
+            <button id="resetBtn" class="btn" type="button">重置</button>
+            <button id="queryBtn" class="btn btn-primary" type="button">查询</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table aria-label="串货异常记录列表">
+            <colgroup>
+              <col style="width:108px"><col style="width:120px"><col style="width:114px"><col style="width:145px"><col style="width:100px"><col style="width:82px"><col style="width:56px"><col style="width:145px"><col style="width:115px"><col style="width:95px"><col style="width:95px"><col style="width:120px"><col style="width:120px"><col style="width:62px"><col style="width:84px"><col style="width:51px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>异常类型</th><th>设备SN</th><th>设备MAC</th><th>产品名称</th><th>产品型号</th><th>产品编号</th><th>产品图片</th><th>销售客户</th><th>订单号</th><th>可使用国家</th><th>实际IP国家</th><th>首次发现时间</th><th>最近发现时间</th><th>异常次数</th><th>发货轮次 <span class="info-tip" title="首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。">?</span></th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty">
+            <svg viewBox="0 0 48 48"><path d="M10 8h28v32H10zM16 16h16M16 23h16M16 30h10"/></svg>
+            <span>暂无符合条件的疑似串货记录</span>
+          </div>
+          <div class="pager">
+            <span>共<span id="totalCount">23</span>条</span>
+            <button aria-label="上一页">‹</button><button class="active">1</button><button>2</button><button>3</button><span class="ellipsis">•••</span><button>3</button><button aria-label="下一页">›</button>
+            <select class="page-size" aria-label="每页条数"><option>10 条/页</option><option>20 条/页</option><option>50 条/页</option></select>
+            <span>跳至</span><input aria-label="跳转页码" type="text"><span>页</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="mask" class="mask"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="drawer-title">疑似串货详情</div>
+      <button id="drawerClose" class="drawer-close" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="summary-line"><span id="drawerType" class="type-pill type-cn">国内流向国外</span></div>
+      <div class="section-title">判定说明</div>
+      <div id="drawerLogic" class="logic">可使用国家为中国，最近一次设备上云解析得到的实际IP国家为新加坡，国家代码不一致，命中“国内流向国外”规则。</div>
+
+      <div class="section-title">设备与业务信息</div>
+      <div class="desc-grid">
+        <div class="label">设备SN</div><div id="dSn"></div>
+        <div class="label">设备MAC</div><div id="dMac"></div>
+        <div class="label">产品名称</div><div id="dProductName"></div>
+        <div class="label">产品型号</div><div id="dProductModel"></div>
+        <div class="label">产品编号</div><div id="dProductNo"></div>
+        <div class="label">产品图片</div><div id="dProductImage" class="detail-product-image"></div>
+        <div class="label">销售客户</div><div id="dCustomer"></div>
+        <div class="label">订单号</div><div id="dOrder"></div>
+        <div class="label">可使用国家</div><div id="dExpected"></div>
+        <div class="label">国家来源</div><div id="dSource"></div>
+        <div class="label">发货轮次</div><div id="dShipmentCycle"></div>
+      </div>
+      <div class="shipment-help">首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。物流单重打、仓库调拨不增加轮次。</div>
+
+      <div class="section-title">最近观察依据</div>
+      <div class="desc-grid">
+        <div class="label">公网IP</div><div id="dIp"></div>
+        <div class="label">实际IP国家</div><div id="dActual"></div>
+        <div class="label">首次发现</div><div id="dFirst"></div>
+        <div class="label">最近发现</div><div id="dLast"></div>
+        <div class="label">观察次数</div><div id="dCount"></div>
+      </div>
+
+      <div id="observationTitle" class="section-title">观察事件</div>
+      <div class="observation-scroll">
+        <table class="observation-table" aria-label="历次观察事件明细">
+          <colgroup><col style="width:58px"><col style="width:138px"><col style="width:120px"><col style="width:98px"><col style="width:196px"></colgroup>
+          <thead><tr><th>序号</th><th>触发时间</th><th>公网IP</th><th>实际IP国家</th><th>判定说明</th></tr></thead>
+          <tbody id="observationBody"></tbody>
+        </table>
+      </div>
+      <div class="evidence-note">说明：IP 国家表示设备联网出口所在国家，仅用于生成疑似异常记录，不能单独证明设备的物理安装地，也不会触发设备锁定或客户限制。</div>
+    </div>
+  </aside>
+
+  <script>
+    const records = [
+      { id:'AD202609160001', type:'国内流向国外', sn:'08575671CE57BC1A', mac:'7C:21:4A:**:91:0F', product:'8路16A继电器模块（带干接点）', model:'M/R8.16.1', productNo:'306010441', imageKind:'module', customer:'河南星宇智能物联网科技有限公司', order:'SO202609110032', expected:'中国', actual:'新加坡', source:'客户所属国家', ip:'103.***.42.18', first:'2026/09/16 09:22', last:'2026/09/16 14:31', count:6, shipmentCycle:1 },
+      { id:'AD202609150014', type:'海外跨国流向', sn:'1A65433772145647', mac:'20:6F:AA:**:67:19', product:'逻辑控制模块', model:'SB-DN-Logic960', productNo:'319020003', imageKind:'module', customer:'HDL Automation Malaysia Sdn. Bhd.', order:'MY2609080038', expected:'马来西亚', actual:'印度尼西亚', source:'客户销售国家', ip:'182.***.77.204', first:'2026/09/15 18:08', last:'2026/09/16 13:04', count:3, shipmentCycle:2 },
+      { id:'AD202609150011', type:'海外跨国流向', sn:'0C811A4E11464CD2', mac:'90:8D:6C:**:00:E7', product:'DALI-2网关', model:'SB-DN-DALI2.1', productNo:'309010303', imageKind:'module', customer:'HDL Automation LLC', order:'AE2609030012', expected:'阿联酋', actual:'沙特阿拉伯', source:'项目所在国家', ip:'212.***.112.36', first:'2026/09/15 16:41', last:'2026/09/16 11:50', count:9, shipmentCycle:1 },
+      { id:'AD202609150006', type:'国内流向国外', sn:'08575689509E2519', mac:'7C:21:4A:**:42:8C', product:'12路16A继电器模块', model:'M/R12.16.1', productNo:'306010442', imageKind:'module', customer:'杭州泰伦特智能科技有限公司', order:'SO202609050018', expected:'中国', actual:'德国', source:'客户销售国家', ip:'88.***.214.91', first:'2026/09/15 11:16', last:'2026/09/16 10:42', count:4, shipmentCycle:2 },
+      { id:'AD202609140009', type:'海外跨国流向', sn:'0B2C0EE83CF58163', mac:'64:52:99:**:31:AE', product:'方智2.0 六键多功能环境面板', model:'MPPI.46-A', productNo:'308050348', imageKind:'panel', customer:'HDL France SAS', order:'FR2609020071', expected:'法国', actual:'西班牙', source:'项目所在国家', ip:'81.***.183.12', first:'2026/09/14 20:03', last:'2026/09/16 09:35', count:12, shipmentCycle:3 },
+      { id:'AD202609140005', type:'海外跨国流向', sn:'09BAB662023DFDF7', mac:'48:55:19:**:D2:03', product:'智能升合帘电机', model:'HDL-MW60', productNo:'307010732', imageKind:'motor', customer:'HDL Automation Australia Pty Ltd', order:'AU2609010026', expected:'澳大利亚', actual:'新西兰', source:'客户销售国家', ip:'122.***.91.55', first:'2026/09/14 13:26', last:'2026/09/15 22:10', count:2, shipmentCycle:1 },
+      { id:'AD202609130017', type:'国内流向国外', sn:'1A6543376FB1FDE2', mac:'20:6F:AA:**:DE:72', product:'逻辑控制模块', model:'SB-DN-Logic960', productNo:'319020003', imageKind:'module', customer:'广州河东智能科技有限公司', order:'SO202608290064', expected:'中国', actual:'泰国', source:'客户所属国家', ip:'49.***.217.80', first:'2026/09/13 17:54', last:'2026/09/15 16:28', count:5, shipmentCycle:2 },
+      { id:'AD202609130008', type:'海外跨国流向', sn:'08F7263442CC900B', mac:'18:2A:7B:**:19:40', product:'KNX智能面板', model:'Granite Display', productNo:'308010914', imageKind:'panel', customer:'HDL Turkey Elektronik', order:'TR2608280009', expected:'土耳其', actual:'保加利亚', source:'客户销售国家', ip:'79.***.224.19', first:'2026/09/13 12:02', last:'2026/09/15 08:17', count:3, shipmentCycle:1 },
+      { id:'AD202609120003', type:'海外跨国流向', sn:'0A62F4201D9902E1', mac:'AC:3F:A4:**:70:2A', product:'总线交换机', model:'HDL-MHUB4.1', productNo:'319030102', imageKind:'module', customer:'HDL Brasil Automação', order:'BR2608270044', expected:'巴西', actual:'阿根廷', source:'项目所在国家', ip:'190.***.42.73', first:'2026/09/12 09:47', last:'2026/09/14 19:33', count:8, shipmentCycle:2 },
+      { id:'AD202609110019', type:'国内流向国外', sn:'08643091AC2F7177', mac:'74:D0:2B:**:4F:9C', product:'环境传感器', model:'MS12.2C', productNo:'308070021', imageKind:'panel', customer:'西安河东智能科技有限公司', order:'SO202608250017', expected:'中国', actual:'越南', source:'客户销售国家', ip:'113.***.17.209', first:'2026/09/11 21:15', last:'2026/09/14 08:12', count:2, shipmentCycle:1 }
+    ];
+
+    const body = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    const total = document.getElementById('totalCount');
+    const filters = ['productNameFilter','productModelFilter','productNoFilter','deviceSnFilter','deviceMacFilter','customerFilter','orderFilter','typeFilter','expectedFilter','actualFilter','dateStart','dateEnd'];
+
+    function safe(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+    }
+
+    function productThumb(r) {
+      return `<div class="product-thumb ${safe(r.imageKind)}" role="img" aria-label="${safe(r.product)}产品图片" title="${safe(r.product)}"></div>`;
+    }
+
+    function shipmentCycleLabel(cycle) {
+      return cycle === 1 ? '首次发货' : `第${cycle}次发货`;
+    }
+
+    function render(rows) {
+      body.innerHTML = rows.map((r, index) => `
+        <tr data-id="${safe(r.id)}" class="${index === 6 ? 'selected' : ''}">
+          <td><span class="type-pill ${r.type === '国内流向国外' ? 'type-cn' : 'type-global'}">${safe(r.type)}</span></td>
+          <td title="${safe(r.sn)}">${safe(r.sn)}</td>
+          <td title="${safe(r.mac)}">${safe(r.mac)}</td>
+          <td title="${safe(r.product)}">${safe(r.product)}</td>
+          <td title="${safe(r.model)}">${safe(r.model)}</td>
+          <td>${safe(r.productNo)}</td>
+          <td>${productThumb(r)}</td>
+          <td title="${safe(r.customer)}">${safe(r.customer)}</td>
+          <td>${safe(r.order)}</td>
+          <td>${safe(r.expected)}</td>
+          <td>${safe(r.actual)}</td>
+          <td>${safe(r.first)}</td>
+          <td>${safe(r.last)}</td>
+          <td class="count">${safe(r.count)}</td>
+          <td title="首次发货为第一次正式出库；第2次及以后发货为退货入库后再次正式出库。">${safe(shipmentCycleLabel(r.shipmentCycle))}</td>
+          <td><a href="#" class="detail-link" data-id="${safe(r.id)}">详情</a></td>
+        </tr>`).join('');
+      empty.style.display = rows.length ? 'none' : 'flex';
+      document.querySelector('table').style.display = rows.length ? 'table' : 'none';
+      total.textContent = rows.length === records.length ? '23' : String(rows.length);
+      document.querySelectorAll('.detail-link').forEach(link => link.addEventListener('click', event => {
+        event.preventDefault();
+        openDrawer(link.dataset.id);
+      }));
+    }
+
+    function applyFilters() {
+      const value = id => document.getElementById(id).value.trim().toLowerCase();
+      const productName = value('productNameFilter');
+      const productModel = value('productModelFilter');
+      const productNo = value('productNoFilter');
+      const deviceSn = value('deviceSnFilter');
+      const deviceMac = value('deviceMacFilter');
+      const customer = value('customerFilter');
+      const order = value('orderFilter');
+      const type = value('typeFilter');
+      const expected = value('expectedFilter');
+      const actual = value('actualFilter');
+      const start = document.getElementById('dateStart').value;
+      const end = document.getElementById('dateEnd').value;
+      const rows = records.filter(r => {
+        const firstDate = r.first.slice(0, 10).replaceAll('/', '-');
+        return (!productName || r.product.toLowerCase().includes(productName))
+          && (!productModel || r.model.toLowerCase().includes(productModel))
+          && (!productNo || r.productNo.toLowerCase().includes(productNo))
+          && (!deviceSn || r.sn.toLowerCase().includes(deviceSn))
+          && (!deviceMac || r.mac.toLowerCase().includes(deviceMac))
+          && (!customer || r.customer.toLowerCase().includes(customer))
+          && (!order || r.order.toLowerCase().includes(order))
+          && (!type || r.type.toLowerCase() === type)
+          && (!expected || r.expected.toLowerCase() === expected)
+          && (!actual || r.actual.toLowerCase() === actual)
+          && (!start || firstDate >= start)
+          && (!end || firstDate <= end);
+      });
+      render(rows);
+    }
+
+    document.getElementById('queryBtn').addEventListener('click', applyFilters);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      filters.forEach(id => document.getElementById(id).value = '');
+      document.querySelectorAll('.select-wrap select').forEach(select => select.classList.add('placeholder'));
+      render(records);
+    });
+    document.querySelectorAll('.select-wrap select').forEach(select => select.addEventListener('change', () => select.classList.toggle('placeholder', !select.value)));
+    document.querySelectorAll('.field').forEach(input => input.addEventListener('keydown', event => { if (event.key === 'Enter') applyFilters(); }));
+
+    const drawer = document.getElementById('drawer');
+    const mask = document.getElementById('mask');
+
+    function parseStamp(value) {
+      return new Date(value.replaceAll('/', '-').replace(' ', 'T') + ':00');
+    }
+
+    function formatStamp(value) {
+      const pad = number => String(number).padStart(2, '0');
+      return `${value.getFullYear()}/${pad(value.getMonth() + 1)}/${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}`;
+    }
+
+    function buildObservations(r) {
+      const first = parseStamp(r.first).getTime();
+      const last = parseStamp(r.last).getTime();
+      const seed = Array.from(r.sn).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      const prefix = r.ip.split('.').slice(0, 3).join('.');
+      return Array.from({ length: r.count }, (_, index) => {
+        const ratio = r.count === 1 ? 1 : index / (r.count - 1);
+        const time = index === 0 ? r.first : index === r.count - 1 ? r.last : formatStamp(new Date(first + (last - first) * ratio));
+        const ip = index === r.count - 1 ? r.ip : `${prefix}.${10 + ((seed + index * 37) % 220)}`;
+        return { sequence: index + 1, time, ip, country: r.actual };
+      }).reverse();
+    }
+
+    function openDrawer(id) {
+      const r = records.find(item => item.id === id);
+      if (!r) return;
+      document.getElementById('drawerType').textContent = r.type;
+      document.getElementById('drawerType').className = `type-pill ${r.type === '国内流向国外' ? 'type-cn' : 'type-global'}`;
+      document.getElementById('drawerLogic').textContent = `可使用国家为${r.expected}，最近一次设备上云解析得到的实际IP国家为${r.actual}，国家代码不一致，命中“${r.type}”规则。`;
+      document.getElementById('dSn').textContent = r.sn;
+      document.getElementById('dMac').textContent = r.mac;
+      document.getElementById('dProductName').textContent = r.product;
+      document.getElementById('dProductModel').textContent = r.model;
+      document.getElementById('dProductNo').textContent = r.productNo;
+      document.getElementById('dProductImage').innerHTML = productThumb(r);
+      document.getElementById('dCustomer').textContent = r.customer;
+      document.getElementById('dOrder').textContent = r.order;
+      document.getElementById('dExpected').textContent = r.expected;
+      document.getElementById('dSource').textContent = r.source;
+      document.getElementById('dShipmentCycle').textContent = shipmentCycleLabel(r.shipmentCycle);
+      document.getElementById('dIp').textContent = r.ip;
+      document.getElementById('dActual').textContent = r.actual;
+      document.getElementById('dFirst').textContent = r.first;
+      document.getElementById('dLast').textContent = r.last;
+      document.getElementById('dCount').textContent = `${r.count} 次`;
+      const events = buildObservations(r);
+      document.getElementById('observationTitle').textContent = `观察事件（共 ${r.count} 次）`;
+      document.getElementById('observationBody').innerHTML = events.map(event => `<tr>
+        <td class="event-index">第${event.sequence}次</td>
+        <td>${safe(event.time)}</td>
+        <td>${safe(event.ip)}</td>
+        <td>${safe(event.country)}</td>
+        <td>${safe(r.expected)} ≠ ${safe(event.country)}，${safe(r.type)}</td>
+      </tr>`).join('');
+      drawer.classList.add('open');
+      mask.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      mask.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+    }
+
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+    mask.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); });
+
+    render(records);
+  </script>
+</body>
+</html>

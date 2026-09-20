@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   Search,
   Settings,
+  ShieldAlert,
   ShoppingCart,
   Store,
   X,
@@ -28,6 +29,7 @@ import OrderEditorView from "./components/OrderEditorView.vue";
 import OrderActionModal from "./components/OrderActionModal.vue";
 
 const isChannelPlatform = new URLSearchParams(window.location.search).get("platform") === "channel";
+const antiChannelConflictUrl = `${import.meta.env.BASE_URL}anti-channel-conflict/`;
 const commerceRoutes = ["shop", "product-detail", "cart", "checkout"];
 const route = ref(isChannelPlatform ? "shop" : "customer-orders");
 const currentMode = ref("customer");
@@ -572,6 +574,12 @@ function showToast(message) {
           <button v-if="!isChannelPlatform" class="nav-item" :class="{ active: isNavActive('admin-orders') }" type="button" @click="navigate('admin-orders')">标品订单</button>
           <button class="nav-item" :class="{ active: isNavActive('customer-orders') }" type="button" @click="navigate('customer-orders')">客户订单</button>
         </div>
+        <template v-if="!isChannelPlatform">
+          <button class="nav-head" type="button"><strong><ShieldAlert :size="16" />渠道管理</strong><span>^</span></button>
+          <div class="nav-items">
+            <a class="nav-item" :href="antiChannelConflictUrl">串货异常记录</a>
+          </div>
+        </template>
       </aside>
 
       <main class="main">

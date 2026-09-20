@@ -107,6 +107,8 @@
       border-right: 2px solid transparent;
       background: transparent;
       color: #4e5863;
+      cursor: pointer;
+      text-decoration: none;
       text-align: left;
       white-space: nowrap;
     }
