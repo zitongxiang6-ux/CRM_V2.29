@@ -351,6 +351,7 @@
     .desc-grid > div { min-height: 39px; display: flex; align-items: center; padding: 8px 10px; border-right: 1px solid #eceef1; border-bottom: 1px solid #eceef1; }
     .desc-grid .label { color: #80848e; background: #fafafb; }
     .shipment-help { margin: 8px 0 0 104px; color: #8b8e97; font-size: 12px; line-height: 1.7; }
+    .count-help { margin-top: 10px; padding: 9px 12px; border-radius: 4px; background: #f8f9fb; color: #686d78; font-size: 12px; line-height: 1.7; }
 
     .logic {
       padding: 12px 14px;
@@ -483,7 +484,7 @@
             </colgroup>
             <thead>
               <tr>
-                <th>异常类型</th><th>设备SN</th><th>设备MAC</th><th>产品名称</th><th>产品型号</th><th>产品编号</th><th>产品图片</th><th>销售客户</th><th>订单号</th><th>可使用国家</th><th>实际IP国家</th><th>首次发现时间</th><th>最近发现时间</th><th>异常次数</th><th>发货轮次 <span class="info-tip" title="首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。">?</span></th><th>操作</th>
+                <th>异常类型</th><th>设备SN</th><th>设备MAC</th><th>产品名称</th><th>产品型号</th><th>产品编号</th><th>产品图片</th><th>销售客户</th><th>订单号</th><th>可使用国家</th><th>实际IP国家</th><th>首次发现时间</th><th>最近发现时间</th><th>异常次数 <span class="info-tip" title="独立上云后首次命中异常计1次；持续在线心跳和同一事件重复上报不计。断线后重新上云，即使国家相同也再计1次。">?</span></th><th>发货轮次 <span class="info-tip" title="首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。">?</span></th><th>操作</th>
               </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -530,18 +531,19 @@
       </div>
       <div class="shipment-help">首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。物流单重打、仓库调拨不增加轮次。</div>
 
-      <div class="section-title">最近观察依据</div>
+      <div class="section-title">最近异常依据</div>
       <div class="desc-grid">
         <div class="label">公网IP</div><div id="dIp"></div>
         <div class="label">实际IP国家</div><div id="dActual"></div>
         <div class="label">首次发现</div><div id="dFirst"></div>
         <div class="label">最近发现</div><div id="dLast"></div>
-        <div class="label">观察次数</div><div id="dCount"></div>
+        <div class="label">异常次数</div><div id="dCount"></div>
       </div>
+      <div class="count-help">每次独立上云首次命中跨国异常计 1 次；同一上云会话中切换到另一异常国家再计 1 次。持续在线心跳、同一事件重复上报不计；断线后重新上云，即使仍在同一国家也再计 1 次。</div>
 
-      <div id="observationTitle" class="section-title">观察事件</div>
+      <div id="observationTitle" class="section-title">异常明细</div>
       <div class="observation-scroll">
-        <table class="observation-table" aria-label="历次观察事件明细">
+        <table class="observation-table" aria-label="历次异常明细">
           <colgroup><col style="width:58px"><col style="width:138px"><col style="width:120px"><col style="width:98px"><col style="width:196px"></colgroup>
           <thead><tr><th>序号</th><th>触发时间</th><th>公网IP</th><th>实际IP国家</th><th>判定说明</th></tr></thead>
           <tbody id="observationBody"></tbody>
@@ -678,7 +680,7 @@
         const ratio = r.count === 1 ? 1 : index / (r.count - 1);
         const time = index === 0 ? r.first : index === r.count - 1 ? r.last : formatStamp(new Date(first + (last - first) * ratio));
         const ip = index === r.count - 1 ? r.ip : `${prefix}.${10 + ((seed + index * 37) % 220)}`;
-        return { sequence: index + 1, time, ip, country: r.actual };
+        return { sequence: index + 1, time, ip, country: r.actual, trigger: index === 0 ? '首次异常上云' : '断线后重新上云' };
       }).reverse();
     }
 
@@ -703,15 +705,15 @@
       document.getElementById('dActual').textContent = r.actual;
       document.getElementById('dFirst').textContent = r.first;
       document.getElementById('dLast').textContent = r.last;
-      document.getElementById('dCount').textContent = `${r.count} 次`;
       const events = buildObservations(r);
-      document.getElementById('observationTitle').textContent = `观察事件（共 ${r.count} 次）`;
+      document.getElementById('dCount').textContent = `${events.length} 次`;
+      document.getElementById('observationTitle').textContent = `异常明细（共 ${events.length} 次）`;
       document.getElementById('observationBody').innerHTML = events.map(event => `<tr>
         <td class="event-index">第${event.sequence}次</td>
         <td>${safe(event.time)}</td>
         <td>${safe(event.ip)}</td>
         <td>${safe(event.country)}</td>
-        <td>${safe(r.expected)} ≠ ${safe(event.country)}，${safe(r.type)}</td>
+        <td>${safe(event.trigger)}；${safe(r.expected)} ≠ ${safe(event.country)}，${safe(r.type)}</td>
       </tr>`).join('');
       drawer.classList.add('open');
       mask.classList.add('open');
