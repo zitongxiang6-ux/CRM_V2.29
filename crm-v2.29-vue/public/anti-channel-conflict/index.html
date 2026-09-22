@@ -304,7 +304,7 @@
       cursor: help;
       vertical-align: 1px;
     }
-    .info-tip-button { padding: 0; background: transparent; font-family: inherit; line-height: 1; cursor: pointer; }
+    .info-tip-button { padding: 0; background: transparent; font-family: inherit; line-height: 1; cursor: help; }
     .info-tip-button:hover { border-color: var(--brand); color: var(--brand); }
     .info-tip-button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
@@ -325,12 +325,11 @@
     .mask { position: fixed; z-index: 60; inset: 0; background: rgba(20, 21, 26, .28); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
     .mask.open { opacity: 1; pointer-events: auto; }
 
-    .help-dialog { width: min(440px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 8px; color: var(--ink); background: #fff; box-shadow: 0 18px 48px rgba(20, 21, 26, .2); }
-    .help-dialog::backdrop { background: rgba(20, 21, 26, .36); }
-    .help-dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid var(--line); }
-    .help-dialog-title { margin: 0; font-size: 17px; font-weight: 600; }
-    .help-dialog-body { padding: 22px 20px 18px; font-size: 14px; line-height: 1.8; }
-    .help-dialog-actions { display: flex; justify-content: flex-end; padding: 0 20px 20px; }
+    .hint-bubble { position: fixed; z-index: 80; width: 320px; max-width: calc(100vw - 24px); padding: 11px 13px; border: 1px solid #e1e4ea; border-radius: 6px; background: #fff; box-shadow: 0 6px 18px rgba(24, 28, 38, .14); color: #4d5058; font-size: 12px; line-height: 1.7; white-space: normal; pointer-events: none; }
+    .hint-bubble[hidden] { display: none; }
+    .hint-bubble::before { content: ''; position: absolute; left: calc(var(--tip-x) - 5px); width: 10px; height: 10px; background: #fff; }
+    .hint-bubble[data-placement="below"]::before { top: -6px; border-top: 1px solid #e1e4ea; border-left: 1px solid #e1e4ea; transform: rotate(45deg); }
+    .hint-bubble[data-placement="above"]::before { bottom: -6px; border-right: 1px solid #e1e4ea; border-bottom: 1px solid #e1e4ea; transform: rotate(45deg); }
 
     .drawer {
       position: fixed;
@@ -494,7 +493,7 @@
             </colgroup>
             <thead>
               <tr>
-                <th>异常类型</th><th>设备SN</th><th>设备MAC</th><th>产品名称</th><th>产品型号</th><th>产品编号</th><th>产品图片</th><th>销售客户</th><th>订单号</th><th>可使用国家</th><th>实际IP国家</th><th>首次发现时间</th><th>最近发现时间</th><th>异常次数 <span class="info-tip" title="独立上云后首次命中异常计1次；持续在线心跳和同一事件重复上报不计。断线后重新上云，即使国家相同也再计1次。">?</span></th><th>发货轮次 <button id="shipmentHelpBtn" class="info-tip info-tip-button" type="button" aria-label="什么是发货轮次" aria-haspopup="dialog" aria-controls="shipmentDialog">?</button></th><th>操作</th>
+                <th>异常类型</th><th>设备SN</th><th>设备MAC</th><th>产品名称</th><th>产品型号</th><th>产品编号</th><th>产品图片</th><th>销售客户</th><th>订单号</th><th>可使用国家</th><th>实际IP国家</th><th>首次发现时间</th><th>最近发现时间</th><th>异常次数 <span class="info-tip" title="独立上云后首次命中异常计1次；持续在线心跳和同一事件重复上报不计。断线后重新上云，即使国家相同也再计1次。">?</span></th><th>发货轮次 <button id="shipmentHelpBtn" class="info-tip info-tip-button" type="button" aria-label="什么是发货轮次" aria-describedby="shipmentTooltip">?</button></th><th>操作</th>
               </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -514,14 +513,7 @@
     </div>
   </main>
 
-  <dialog id="shipmentDialog" class="help-dialog" aria-labelledby="shipmentDialogTitle">
-    <div class="help-dialog-head">
-      <h2 id="shipmentDialogTitle" class="help-dialog-title">什么是发货轮次</h2>
-      <button id="shipmentDialogClose" class="drawer-close" type="button" aria-label="关闭说明">×</button>
-    </div>
-    <div class="help-dialog-body">首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。</div>
-    <div class="help-dialog-actions"><button id="shipmentDialogOk" class="btn btn-primary" type="button">知道了</button></div>
-  </dialog>
+  <div id="shipmentTooltip" class="hint-bubble" role="tooltip" hidden>首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。</div>
 
   <div id="mask" class="mask"></div>
   <aside id="drawer" class="drawer" aria-hidden="true">
@@ -749,13 +741,32 @@
     mask.addEventListener('click', closeDrawer);
     document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); });
 
-    const shipmentDialog = document.getElementById('shipmentDialog');
     const shipmentHelpBtn = document.getElementById('shipmentHelpBtn');
-    shipmentHelpBtn.addEventListener('click', () => shipmentDialog.showModal());
-    document.getElementById('shipmentDialogClose').addEventListener('click', () => shipmentDialog.close());
-    document.getElementById('shipmentDialogOk').addEventListener('click', () => shipmentDialog.close());
-    shipmentDialog.addEventListener('click', event => { if (event.target === shipmentDialog) shipmentDialog.close(); });
-    shipmentDialog.addEventListener('close', () => shipmentHelpBtn.focus());
+    const shipmentTooltip = document.getElementById('shipmentTooltip');
+    function showShipmentTooltip() {
+      shipmentTooltip.hidden = false;
+      const anchor = shipmentHelpBtn.getBoundingClientRect();
+      const width = shipmentTooltip.offsetWidth;
+      const height = shipmentTooltip.offsetHeight;
+      const left = Math.max(12, Math.min(anchor.left + anchor.width / 2 - width / 2, window.innerWidth - width - 12));
+      let top = anchor.bottom + 12;
+      let placement = 'below';
+      if (top + height > window.innerHeight - 12) {
+        top = anchor.top - height - 12;
+        placement = 'above';
+      }
+      shipmentTooltip.style.left = `${left}px`;
+      shipmentTooltip.style.top = `${Math.max(12, top)}px`;
+      shipmentTooltip.style.setProperty('--tip-x', `${Math.max(12, Math.min(width - 12, anchor.left + anchor.width / 2 - left))}px`);
+      shipmentTooltip.dataset.placement = placement;
+    }
+    function hideShipmentTooltip() { shipmentTooltip.hidden = true; }
+    shipmentHelpBtn.addEventListener('mouseenter', showShipmentTooltip);
+    shipmentHelpBtn.addEventListener('mouseleave', hideShipmentTooltip);
+    shipmentHelpBtn.addEventListener('focus', showShipmentTooltip);
+    shipmentHelpBtn.addEventListener('blur', hideShipmentTooltip);
+    window.addEventListener('scroll', hideShipmentTooltip, true);
+    window.addEventListener('resize', hideShipmentTooltip);
 
     render(records);
   </script>
