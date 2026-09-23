@@ -360,7 +360,6 @@
     .desc-grid > div { min-height: 39px; display: flex; align-items: center; padding: 8px 10px; border-right: 1px solid #eceef1; border-bottom: 1px solid #eceef1; }
     .desc-grid .label { color: #80848e; background: #fafafb; }
     .shipment-help { margin: 8px 0 0 104px; color: #8b8e97; font-size: 12px; line-height: 1.7; }
-    .count-help { margin-top: 10px; padding: 9px 12px; border-radius: 4px; background: #f8f9fb; color: #686d78; font-size: 12px; line-height: 1.7; }
 
     .logic {
       padding: 12px 14px;
@@ -542,15 +541,13 @@
       </div>
       <div class="shipment-help">首次发货指设备第一次正式出库；第2次及以后发货指同一设备完成退货入库后再次正式出库。</div>
 
-      <div class="section-title">最近异常依据</div>
+      <div class="section-title">最近异常记录</div>
       <div class="desc-grid">
         <div class="label">公网IP</div><div id="dIp"></div>
         <div class="label">实际IP国家</div><div id="dActual"></div>
-        <div class="label">首次发现</div><div id="dFirst"></div>
-        <div class="label">最近发现</div><div id="dLast"></div>
-        <div class="label">异常次数</div><div id="dCount"></div>
+        <div class="label">触发时间</div><div id="dTriggerTime"></div>
+        <div class="label">判定说明</div><div id="dDecisionReason"></div>
       </div>
-      <div class="count-help">每次独立上云首次命中跨国异常计 1 次；同一上云会话中切换到另一异常国家再计 1 次。持续在线心跳、同一事件重复上报不计；断线后重新上云，即使仍在同一国家也再计 1 次。</div>
 
       <div id="observationTitle" class="section-title">异常明细</div>
       <div class="observation-scroll">
@@ -712,12 +709,12 @@
       document.getElementById('dExpected').textContent = r.expected;
       document.getElementById('dSource').textContent = r.source;
       document.getElementById('dShipmentCycle').textContent = shipmentCycleLabel(r.shipmentCycle);
-      document.getElementById('dIp').textContent = r.ip;
-      document.getElementById('dActual').textContent = r.actual;
-      document.getElementById('dFirst').textContent = r.first;
-      document.getElementById('dLast').textContent = r.last;
       const events = buildObservations(r);
-      document.getElementById('dCount').textContent = `${events.length} 次`;
+      const latestEvent = events[0];
+      document.getElementById('dIp').textContent = latestEvent.ip;
+      document.getElementById('dActual').textContent = latestEvent.country;
+      document.getElementById('dTriggerTime').textContent = latestEvent.time;
+      document.getElementById('dDecisionReason').textContent = `${latestEvent.trigger}；${r.expected} ≠ ${latestEvent.country}，${r.type}`;
       document.getElementById('observationTitle').textContent = `异常明细（共 ${events.length} 次）`;
       document.getElementById('observationBody').innerHTML = events.map(event => `<tr>
         <td class="event-index">第${event.sequence}次</td>
