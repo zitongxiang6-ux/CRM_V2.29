@@ -361,14 +361,6 @@
     .desc-grid .label { color: #80848e; background: #fafafb; }
     .shipment-help { margin: 8px 0 0 104px; color: #8b8e97; font-size: 12px; line-height: 1.7; }
 
-    .logic {
-      padding: 12px 14px;
-      background: #faf6fb;
-      border-left: 3px solid var(--brand);
-      color: #555861;
-      line-height: 1.7;
-    }
-
     .observation-scroll { overflow-x: auto; border: 1px solid #eceef1; }
     .observation-table { width: 100%; min-width: 610px; table-layout: fixed; }
     .observation-table th { height: 39px; padding: 0 8px; font-size: 12px; }
@@ -522,8 +514,6 @@
     </div>
     <div class="drawer-body">
       <div class="summary-line"><span id="drawerType" class="type-pill type-cn">国内流向国外</span></div>
-      <div class="section-title">判定说明</div>
-      <div id="drawerLogic" class="logic">可使用国家为中国，最近一次设备上云解析得到的实际IP国家为新加坡，国家代码不一致，命中“国内流向国外”规则。</div>
 
       <div class="section-title">设备与业务信息</div>
       <div class="desc-grid">
@@ -697,7 +687,6 @@
       if (!r) return;
       document.getElementById('drawerType').textContent = r.type;
       document.getElementById('drawerType').className = `type-pill ${r.type === '国内流向国外' ? 'type-cn' : 'type-global'}`;
-      document.getElementById('drawerLogic').textContent = `可使用国家为${r.expected}，最近一次设备上云解析得到的实际IP国家为${r.actual}，国家代码不一致，命中“${r.type}”规则。`;
       document.getElementById('dSn').textContent = r.sn;
       document.getElementById('dMac').textContent = r.mac;
       document.getElementById('dProductName').textContent = r.product;
